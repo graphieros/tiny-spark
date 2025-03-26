@@ -17,6 +17,6 @@ export enum DATA {
     RESPONSIVE = 'data-responsive'
 }
 
-export type POINT = { x: number; y: number }
+export type POINT = { x: number; y: number, v: number | null | undefined }
 
 export const XMLNS = 'http://www.w3.org/2000/svg'

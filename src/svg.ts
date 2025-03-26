@@ -2,21 +2,22 @@ import { LINATION, POINT, XMLNS } from "../types";
 import { createUid } from "./lib";
 
 export function SVG(chart: LINATION) {
-    const { width, height } = chart.getBoundingClientRect();
-    const viewBox = `0 0 ${width} ${height}`;
+    const { width, height } = chart.parentElement!.getBoundingClientRect();
+    const fallback = { width: 300, height: 100 };
+    const viewBox = `0 0 ${width || fallback.width} ${height || fallback.height}`;
 
     const svg = document.createElementNS(XMLNS, 'svg');
     const id = createUid();
-    svg.id = id
-    svg.setAttribute('viewBox', viewBox)
+    svg.id = id;
+    svg.setAttribute('viewBox', viewBox);
     svg.style.width = '100%';
     svg.style.height = '100%';
 
     return {
         svg,
         svgId: id,
-        width,
-        height
+        width: width || fallback.width,
+        height: height || fallback.height
     }
 }
 
