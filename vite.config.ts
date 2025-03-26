@@ -6,7 +6,7 @@ export default defineConfig({
       entry: 'src/index.ts',
       name: 'tiny-spark',
       fileName: (format) => `tiny-spark.${format}.js`,
-      formats: ['umd'],
+      formats: ['es', 'umd'],
     },
     rollupOptions: {
       external: [],

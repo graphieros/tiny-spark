@@ -1,11 +1,10 @@
-import { CHART_TYPE, TINY_SPARK } from "../types"
-import { getCharts, observe, isChartOfType, createLineChart, hasDataset } from "./lib"
+import { TINY_SPARK } from "../types"
+import { getCharts, observe, createLineChart, hasDataset } from "./lib"
 
 (function MAIN() {
 
     window.addEventListener('load', () => {
         const charts = getCharts();
-
         if (!charts.length) return;
 
         Array.from(charts).forEach((chart) => {
@@ -40,7 +39,7 @@ import { getCharts, observe, isChartOfType, createLineChart, hasDataset } from "
 
 function RENDER(chart: TINY_SPARK) {
     chart.__renderCount += 1;
-    isChartOfType(chart, CHART_TYPE.LINE) && hasDataset(chart, 'set') && createLineChart(chart, chart.__renderCount < 3);
+    hasDataset(chart, 'set') && createLineChart(chart, chart.__renderCount < 3);
 }
 
 function CHECK(chart: TINY_SPARK) {

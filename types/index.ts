@@ -32,6 +32,7 @@ export enum DATA_ATTRIBUTE {
     INDICATOR_COLOR = 'indicatorColor',
     INDICATOR_WIDTH = 'indicatorWidth',
     LINE_COLOR = 'lineColor',
+    LINE_THICKNESS = 'lineThickness',
     NUMBER_LOCALE = 'numberLocale',
     NUMBER_ROUNDING = 'numberRounding',
     NUMBER_SHOW_ON = 'numberShowOn',

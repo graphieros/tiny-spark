@@ -1,8 +1,8 @@
-import { CHART, CHART_TYPE, DATA, TINY_SPARK, POINT, XMLNS, DATA_ATTRIBUTE, ANIMATION_DURATION } from "../types"
+import { CHART_TYPE, DATA, TINY_SPARK, POINT, XMLNS, DATA_ATTRIBUTE, ANIMATION_DURATION } from "../types"
 import { animateAreaProgressively, animatePath, createSmoothPath, createStraightPath, SVG } from "./svg";
 
 export function getCharts() {
-  const charts = document.querySelectorAll(`[${CHART.BAR}], [${CHART.LINE}]`);
+  const charts = document.querySelectorAll('.tiny-spark')
   return charts
 }
 
@@ -145,7 +145,6 @@ export function tooltip(svg: SVGSVGElement, chart: TINY_SPARK, point: POINT, id:
   tool.style.top = y + 'px';
   tool.style.left = x + 'px';
   tool.style.width = 'fit-content';
-  tool.style.background = '#1A1A1A80';
   tool.innerHTML = `
     <div class="tiny-spark-tooltip-content">${!point.d ? '' : `${point.d}: `}${[null, undefined].includes(point.v as any) ? '-' : localeNum(chart, Number(point.v))}</div>
   `
@@ -225,7 +224,7 @@ export function createLineChart(chart: TINY_SPARK, firstTime: boolean) {
 
   path.setAttribute('fill', 'none');
   path.setAttribute('stroke', String(getDatasetValue(chart, DATA_ATTRIBUTE.LINE_COLOR, color)));
-  path.setAttribute('stroke-width', '2');
+  path.setAttribute('stroke-width', String(getDatasetValue(chart, DATA_ATTRIBUTE.LINE_THICKNESS, 2)));
   path.setAttribute('stroke-linecap', 'round');
 
   const pathArea = document.createElementNS(XMLNS, 'path');
@@ -256,12 +255,13 @@ export function createLineChart(chart: TINY_SPARK, firstTime: boolean) {
     const indicator = document.createElementNS(XMLNS, 'line');
     indicator.classList.add('tiny-spark-indicator');
     indicator.setAttribute('id', `indicator_${svgId}_${i}`);
-    indicator.setAttribute('x1', String(area.left + allPoints.length === 1 ? area.width / 2 : (i * slot)));
-    indicator.setAttribute('x2', String(area.left + allPoints.length === 1 ? area.width / 2 : (i * slot)));
+    indicator.setAttribute('x1', String(area.left + (allPoints.length === 1 ? area.width / 2 : (i * slot))));
+    indicator.setAttribute('x2', String(area.left + (allPoints.length === 1 ? area.width / 2 : (i * slot))));
     indicator.setAttribute('y1', String(area.top));
     indicator.setAttribute('y2', String(area.bottom));
     indicator.setAttribute('stroke', String(getDatasetValue(chart, DATA_ATTRIBUTE.INDICATOR_COLOR, '#1A1A1A')));
     indicator.setAttribute('stroke-width', String(getDatasetValue(chart, DATA_ATTRIBUTE.INDICATOR_WIDTH, '1')));
+    indicator.setAttribute('stroke-linecap', 'round');
     indicator.style.pointerEvents = 'none';
     indicator.style.opacity = '0';
     indicators.push(indicator);
