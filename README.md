@@ -38,3 +38,37 @@ Just set up a div with a "tiny-spark" class, with a few data attributes to confi
   ></div>
 </div>
 ```
+
+## Styling
+
+tiny-spark is headless.
+
+Target the following css classes to customize elements:
+
+```css
+/** the chart container (div element) */
+.tiny-spark {
+}
+
+/** the tooltip (div element) */
+.tiny-spark-tooltip {
+  /** just display:none if you don't need it */
+}
+
+/** the indicator (svg line element) */
+.tiny-spark-indicator {
+  /** for example: customize stroke-dasharray */
+}
+
+/** the plots (svg circle element) */
+.tiny-spark-datapoint-circle {
+}
+
+/** the chart line (svg path element) */
+.tiny-spark-line-path {
+}
+
+/** the chart area (svg path element) */
+.tiny-spark-line-area {
+}
+```
