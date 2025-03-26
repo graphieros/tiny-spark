@@ -7,6 +7,9 @@
 
 An elegant, reactive and responsive sparkline chart solution without dependency.
 
+<img width="500" alt="image" src="https://github.com/user-attachments/assets/d312a234-8e09-44a2-89fd-5ae85a6cdbec" />
+
+
 ## Installation
 
 ```
