@@ -77,11 +77,31 @@ export function parseDataset(chart: LINATION) {
   }
 }
 
+function getDates(chart: LINATION) {
+  const dates = chart.getAttribute('data-dates');
+  if (!dates) return []
+  try {
+    const parsed = JSON.parse(dates);
+    if (Array.isArray(parsed) && parsed.every(item => typeof item === 'string')) {
+      return parsed;
+    }
+    console.warn('data-dates is not an array of strings');
+    return [];
+  } catch (error) {
+    console.error('Error parsing data-dates', error);
+    return [];
+  }
+}
+
 export function minMax(dataset: number[]) {
   return {
     min: Math.min(...dataset),
     max: Math.max(...dataset)
   }
+}
+
+export function nextTick() {
+  return new Promise(resolve => setTimeout(resolve, 0));
 }
 
 export function localeNum(chart: LINATION, num: number) {
@@ -113,21 +133,32 @@ export function domPlot(svg: SVGSVGElement, svgX: number, svgY: number) {
   return { x: domPoint.x, y: domPoint.y };
 }
 
-export function tooltip(svg: SVGSVGElement, point: POINT, id: string, show: boolean) {
-  if (!show) {
-    const t = document.getElementById(`tooltip_${id}`);
-    t?.remove();
-  } else {
-    const { x, y } = domPlot(svg, point.x, point.y);
-    const tool = document.createElement('div');
-    tool.setAttribute('id', `tooltip_${id}`);
-    tool.style.pointerEvents = 'none';
-    tool.style.position = 'fixed';
-    tool.style.top = y + 'px';
-    tool.style.left = x + 'px';
-    tool.innerHTML = 'test';
-    document.body.appendChild(tool)
-  }
+export function tooltip(svg: SVGSVGElement, chart: LINATION, point: POINT, id: string, show: boolean) {
+  nukeTooltip(id);
+  if (!show) return;
+  const { x, y } = domPlot(svg, point.x, point.y);
+  const tool = document.createElement('div');
+  tool.setAttribute('id', `tooltip_${id}`);
+  tool.style.pointerEvents = 'none';
+  tool.style.position = 'fixed';
+  tool.style.top = y + 'px';
+  tool.style.left = x + 'px';
+  tool.style.width = 'fit-content';
+  tool.style.background = '#1A1A1A80';
+  tool.innerHTML = `
+    <div>${!point.d ? '' : `${point.d}: `}${[null, undefined].includes(point.v as any) ? '-' : localeNum(chart, Number(point.v))}</div>
+  `
+  document.body.appendChild(tool);
+  nextTick().then(() => {
+    const { width, height } = tool.getBoundingClientRect()
+    tool.style.left = `${x - width / 2}px`;
+    tool.style.top = `${y - height - Number(String(Number(getDatasetValue(chart, 'plotRadius', 3)) * 1.5))}px`
+  })
+}
+
+export function nukeTooltip(id: string) {
+  const t = document.getElementById(`tooltip_${id}`);
+  t?.remove();
 }
 
 
@@ -162,12 +193,15 @@ export function createLineChart(chart: LINATION) {
   const { max } = minMax(positiveDataset);
   const slot = area.width / (dataset.length - 1);
 
+  const dates = getDates(chart);
+
   // DATAPOINTS
   const allPoints = positiveDataset.map((d, i) => {
     return {
       y: ((1 - ((d || 0) / max)) * area.height) + padding.T,
       x: area.left + (slot * i),
-      v: d
+      v: d,
+      d: dates[i] || null
     }
   })
 
@@ -196,10 +230,11 @@ export function createLineChart(chart: LINATION) {
 
   // PLOTS
   if (Number(String(getDatasetValue(chart, 'plotRadius', 0))) > 0) {
-    points.forEach(({x, y, v}) => {
+    allPoints.forEach(({x, y, v}, i) => {
       if (![null, undefined].includes(v)) {
         const circle = document.createElementNS(XMLNS, 'circle');
         circle.classList.add('lination-datapoint-circle');
+        circle.setAttribute('id', `circle_${svgId}_${i}`);
         circle.setAttribute('cx', String(x));
         circle.setAttribute('cy', String(y));
         circle.setAttribute('r', String(getDatasetValue(chart, 'plotRadius', 3)));
@@ -219,8 +254,16 @@ export function createLineChart(chart: LINATION) {
     trap.setAttribute('height', `${area.height}`);
     trap.setAttribute('width', `${slot}`);
     trap.setAttribute('fill', 'transparent');
-    trap.addEventListener('mouseenter', () => tooltip(svg, point, svgId, true));
-    trap.addEventListener('mouseout', () => tooltip(svg, point, svgId, false));
+    trap.addEventListener('mouseenter', () => {
+      tooltip(svg, chart, point, svgId, true);
+      const circle = document.getElementById(`circle_${svgId}_${i}`);
+      circle?.setAttribute('r', String(Number(getDatasetValue(chart, 'plotRadius', 3)) * 1.5))
+    });
+    trap.addEventListener('mouseout', () => {
+      tooltip(svg, chart, point, svgId, false);
+      const circle = document.getElementById(`circle_${svgId}_${i}`);
+      circle?.setAttribute('r', String(Number(getDatasetValue(chart, 'plotRadius', 3))))
+    });
     svg.appendChild(trap);
   })
 

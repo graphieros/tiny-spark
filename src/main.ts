@@ -13,7 +13,9 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   data-plot-radius="3"
   data-number-locale="en-US"
   data-number-rounding="2"
-  data-set="[-1, 3, null, 5, 4, 12, 25, 6, 9, -12]"
+  data-number-show-on="hover"
+  data-set="[-1, 3, null, 5, 4, 12]"
+  data-dates='["jan", "feb", "mar", "apr", "may", "jun"]'
 >
 </div>
 </div>
