@@ -23,6 +23,7 @@
     "build": "tsc && vite build"
   },
   "devDependencies": {
+    "@types/node": "^22.13.13",
     "typescript": "~5.7.2",
     "vite": "^6.2.3"
   }
