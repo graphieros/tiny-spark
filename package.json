@@ -1,8 +1,14 @@
 {
-  "name": "lination",
+  "name": "tiny-spark",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
+  "description": "A small, elegant and powerful sparkline chart solution without dependency.",
+  "author": "Alec Lloyd Probert",
+  "main": "dist/tiny-spark.umd.js",
+  "module": "dist/tiny-spark.es.js",
+  "keywords": ["sparkline", "chart", "mini chart", "line"],
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",

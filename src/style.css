@@ -103,3 +103,9 @@ button:focus-visible {
 #app {
   width: 100%;
 }
+
+.tiny-spark-tooltip {
+  border-radius: 3px;
+  padding: 0 12px;
+  font-size: 10px;
+}

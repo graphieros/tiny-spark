@@ -4,9 +4,9 @@ export default defineConfig({
   build: {
     lib: {
       entry: 'src/index.ts',
-      name: 'Lination',
-      fileName: (format) => `my-library.${format}.js`,
-      formats: ['es', 'umd'],
+      name: 'tiny-spark',
+      fileName: (format) => `tiny-spark.${format}.js`,
+      formats: ['umd'],
     },
     rollupOptions: {
       external: [],

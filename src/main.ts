@@ -1,12 +1,22 @@
 import './style.css'
 
+function makeDs(n: number) {
+  let arr = [];
+  for(let i = 0; i < n; i += 1) {
+    arr.push(Math.random());
+  }
+  return arr.toString();
+}
+
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 <div style="width:100%">
 <div 
   class="chart" 
   data-line
+  data-curve="true"
+  data-animation="true"
   data-line-color="#4A4A4A"
-  data-area-color="#6376DD90"
+  data-area-color="#1A1A1A10"
   data-line-thickness="4"
   data-responsive
   data-plot-color="#2A2A2A"
@@ -14,7 +24,9 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   data-number-locale="en-US"
   data-number-rounding="2"
   data-number-show-on="hover"
-  data-set="[-1, 3, null, 5, 4, 12]"
+  data-indicator-color="#1A1A1A"
+  data-indicator-width="1"
+  data-set="[${makeDs(6)}]"
   data-dates='["jan", "feb", "mar", "apr", "may", "jun"]'
 >
 </div>

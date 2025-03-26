@@ -1,7 +1,7 @@
-import { LINATION, POINT, XMLNS } from "../types";
+import { TINY_SPARK, POINT, XMLNS, ANIMATION_DURATION } from "../types";
 import { createUid } from "./lib";
 
-export function SVG(chart: LINATION) {
+export function SVG(chart: TINY_SPARK) {
     const { width, height } = chart.parentElement!.getBoundingClientRect();
     const fallback = { width: 300, height: 100 };
     const viewBox = `0 0 ${width || fallback.width} ${height || fallback.height}`;
@@ -29,8 +29,16 @@ export function checkNaN(val: number, fallback = 0) {
     }
 }
 
+export function createStraightPath(points: POINT[]) {
+    let arr = [];
+    for (let i = 0; i < points.length; i += 1) {
+        arr.push(`${checkNaN(points[i].x)},${checkNaN(points[i].y)} `)
+    }
+    return arr.join(' ').trim()
+}
+
 export function createSmoothPath(points: POINT[]) {
-    if (points.length < 2) return '0,0';
+    if (points.length < 1) return '0,0';
 
     const n = points.length - 1;
     const path = [`${checkNaN(points[0].x)},${checkNaN(points[0].y)}`];
@@ -70,4 +78,49 @@ export function createSmoothPath(points: POINT[]) {
     }
 
     return path.join(' ');
+}
+
+export function animatePath(path: SVGPathElement, duration = ANIMATION_DURATION) {
+    const totalLength = path.getTotalLength();
+    path.style.strokeDasharray = String(totalLength);
+    path.style.strokeDashoffset = String(totalLength);
+    path.getBoundingClientRect();
+    path.style.transition = `stroke-dashoffset ${duration}ms ease-in-out`;
+    path.style.strokeDashoffset = '0';
+    path.addEventListener('transitionend', function handler() {
+        path.style.transition = '';
+        path.removeEventListener('transitionend', handler);
+    });
+}
+
+export function animateAreaProgressively(svg: TINY_SPARK, areaElement: SVGPathElement, duration = ANIMATION_DURATION) {
+    const bbox = areaElement.getBBox();
+    const fullWidth = bbox.width;
+    const clipPath = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");
+    const clipId = "clip-" + Math.random().toString(36).substr(2, 9);
+    clipPath.setAttribute("id", clipId);
+
+    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    rect.setAttribute("x", bbox.x.toString());
+    rect.setAttribute("y", bbox.y.toString());
+    rect.setAttribute("width", "0");
+    rect.setAttribute("height", bbox.height.toString());
+    clipPath.appendChild(rect);
+
+    let defs = svg.querySelector("defs");
+    if (!defs) {
+        defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+        svg.insertBefore(defs, svg.firstChild);
+    }
+    defs.appendChild(clipPath);
+    areaElement.setAttribute("clip-path", `url(#${clipId})`);
+    rect.style.transition = `width ${duration}ms ease-out`;
+    rect.getBoundingClientRect();
+    rect.setAttribute("width", fullWidth.toString());
+
+    rect.addEventListener("transitionend", function handler() {
+        areaElement.removeAttribute("clip-path");
+        clipPath.parentNode && clipPath.parentNode.removeChild(clipPath);
+        rect.removeEventListener("transitionend", handler);
+    });
 }
