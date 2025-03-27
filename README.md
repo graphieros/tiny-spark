@@ -19,10 +19,15 @@ npm i tiny-spark
 
 ## Usage
 
-Import the file in your project (or use the cdn):
+Import the file in your project:
 
 ```js
-import "tiny-spark/dist/tiny-spark.umd";
+import { render } from "tiny-spark/dist/tiny-spark.es";
+
+// If you need to fetch data, call render afterwards
+getData().then(render);
+
+// If you hardcode your dataset, you can call render immediately
 ```
 
 Just set up a div with a "tiny-spark" class, with a few data attributes to configure the chart.
