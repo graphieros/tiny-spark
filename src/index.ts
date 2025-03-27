@@ -35,10 +35,10 @@ export function render() {
 }
 
 function RENDER(chart: TINY_SPARK) {
-    chart.__renderCount += 1;
     if (hasDataset(chart, 'set')) {
-        createLineChart(chart, chart.__renderCount < 2);
+        createLineChart(chart, chart.__renderCount === 0);
     }
+    chart.__renderCount += 1;
 }
 
 function CHECK(chart: TINY_SPARK) {
