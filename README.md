@@ -22,7 +22,7 @@ npm i tiny-spark
 Import the file in your project:
 
 ```js
-import { render } from "tiny-spark/dist/tiny-spark.es";
+import { render } from "tiny-spark";
 
 // If you need to fetch data, call render afterwards
 getData().then(render);
