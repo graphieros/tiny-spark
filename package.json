@@ -18,6 +18,7 @@
     "type": "git",
     "url": "git+https://github.com/graphieros/tiny-spark.git"
   },
+  "homepage": "https://tiny-spark.graphieros.com/",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build"
