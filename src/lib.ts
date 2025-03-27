@@ -278,8 +278,8 @@ export function createLineChart(chart: TINY_SPARK, firstTime: boolean) {
         circle.classList.add('tiny-spark-datapoint-circle');
         circle.classList.add(`circle-${svgId}`);
         circle.setAttribute('id', `circle_${svgId}_${i}`);
-        circle.setAttribute('cx', String(x));
-        circle.setAttribute('cy', String(y));
+        circle.setAttribute('cx', String(x || 0));
+        circle.setAttribute('cy', String(y || 0));
         circle.setAttribute('r', String(getDatasetValue(chart, DATA_ATTRIBUTE.PLOT_RADIUS, 3)));
         circle.setAttribute('fill', String(getDatasetValue(chart, DATA_ATTRIBUTE.PLOT_COLOR, String(getDatasetValue(chart, 'lineColor', color)))));
         circle.setAttribute('stroke', backgroundColor);
