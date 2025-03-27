@@ -226,9 +226,17 @@ export function createLineChart(chart: TINY_SPARK, firstTime: boolean) {
   path.setAttribute('stroke', String(getDatasetValue(chart, DATA_ATTRIBUTE.LINE_COLOR, color)));
   path.setAttribute('stroke-width', String(getDatasetValue(chart, DATA_ATTRIBUTE.LINE_THICKNESS, 2)));
   path.setAttribute('stroke-linecap', 'round');
-
+  
+  
   const pathArea = document.createElementNS(XMLNS, 'path');
   pathArea.classList.add('tiny-spark-line-area');
+
+  const animation = chart.getAttribute('data-animation');
+  
+  if (animation === 'true' && animate) {
+    path.style.opacity = '0'
+    pathArea.style.opacity = '0'
+  }
 
   if (allPoints.length) {
     if (!chart.dataset.curve || chart.dataset.curve === 'true') {
@@ -244,9 +252,6 @@ export function createLineChart(chart: TINY_SPARK, firstTime: boolean) {
     svg.appendChild(pathArea);
     svg.appendChild(path);
   }
-
-
-  const animation = chart.getAttribute('data-animation');
 
   const indicators: SVGLineElement[] = [];
 
