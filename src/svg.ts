@@ -81,6 +81,7 @@ export function createSmoothPath(points: POINT[]) {
 }
 
 export function animatePath(path: SVGPathElement, duration = ANIMATION_DURATION) {
+    path.style.opacity = '1';
     const totalLength = path.getTotalLength();
     path.style.strokeDasharray = String(totalLength);
     path.style.strokeDashoffset = String(totalLength);
@@ -94,6 +95,7 @@ export function animatePath(path: SVGPathElement, duration = ANIMATION_DURATION)
 }
 
 export function animateAreaProgressively(svg: TINY_SPARK, areaElement: SVGPathElement, duration = ANIMATION_DURATION) {
+    areaElement.style.opacity = '1';
     const bbox = areaElement.getBBox();
     const fullWidth = bbox.width;
     const clipPath = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");

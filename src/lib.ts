@@ -283,8 +283,8 @@ export function createLineChart(chart: TINY_SPARK, firstTime: boolean) {
         circle.setAttribute('r', String(getDatasetValue(chart, DATA_ATTRIBUTE.PLOT_RADIUS, 3)));
         circle.setAttribute('fill', String(getDatasetValue(chart, DATA_ATTRIBUTE.PLOT_COLOR, String(getDatasetValue(chart, 'lineColor', color)))));
         circle.setAttribute('stroke', backgroundColor);
-        circle.style.transition = `opacity ${i * ((ANIMATION_DURATION * 2) / allPoints.length)}ms ease-in`;
         circle.style.opacity = '0';
+        circle.style.transition = `opacity ${i * ((ANIMATION_DURATION * 2) / allPoints.length)}ms ease-in`;
         svg.appendChild(circle);
         plots.push(circle);
       }
