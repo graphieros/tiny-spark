@@ -37,7 +37,7 @@ export function render() {
 function RENDER(chart: TINY_SPARK) {
     chart.__renderCount += 1;
     if (hasDataset(chart, 'set')) {
-        createLineChart(chart, chart.__renderCount < 3);
+        createLineChart(chart, chart.__renderCount < 2);
     }
 }
 

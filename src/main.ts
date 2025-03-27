@@ -2,7 +2,7 @@ import './style.css'
 // @ts-ignore
 import { render } from "../dist/tiny-spark.es";
 
-setTimeout(render, 1000)
+setTimeout(render, 0)
 
 function makeDs(n: number) {
   let arr = [];
