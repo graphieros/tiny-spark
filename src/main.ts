@@ -1,4 +1,5 @@
 import './style.css'
+// @ts-ignore
 import { render } from "../dist/tiny-spark.es";
 
 setTimeout(render, 1000)
