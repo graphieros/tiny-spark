@@ -9,6 +9,7 @@ An elegant, reactive and responsive sparkline chart solution without dependency.
 
 <img width="500" alt="image" src="https://github.com/user-attachments/assets/d312a234-8e09-44a2-89fd-5ae85a6cdbec" />
 
+[DEMO](https://tiny-spark.graphieros.com/)
 
 ## Installation
 
@@ -17,6 +18,12 @@ npm i tiny-spark
 ```
 
 ## Usage
+
+Import the file in your project (or use the cdn):
+
+```js
+import "tiny-spark/dist/tiny-spark.umd";
+```
 
 Just set up a div with a "tiny-spark" class, with a few data attributes to configure the chart.
 
