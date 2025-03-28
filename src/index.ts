@@ -49,9 +49,3 @@ function CHECK(chart: TINY_SPARK) {
         );
     }
 }
-
-if (document.readyState === 'loading') {
-    window.addEventListener('load', render);
-} else {
-    render();
-}
