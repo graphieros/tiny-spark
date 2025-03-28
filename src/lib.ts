@@ -138,6 +138,7 @@ export function tooltip(svg: SVGSVGElement, chart: TINY_SPARK, point: POINT, id:
   if (!show) return;
   const { x, y } = domPlot(svg, point.x, point.y);
   const tool = document.createElement('div');
+  tool.style.opacity = '0';
   tool.classList.add('tiny-spark-tooltip');
   tool.setAttribute('id', `tooltip_${id}`);
   tool.style.pointerEvents = 'none';
@@ -147,12 +148,14 @@ export function tooltip(svg: SVGSVGElement, chart: TINY_SPARK, point: POINT, id:
   tool.style.width = 'fit-content';
   tool.innerHTML = `
     <div class="tiny-spark-tooltip-content">${!point.d ? '' : `${point.d}: `}${[null, undefined].includes(point.v as any) ? '-' : localeNum(chart, Number(point.v))}</div>
-  `
+  `;
   document.body.appendChild(tool);
   nextTick().then(() => {
     const { width, height } = tool.getBoundingClientRect()
     tool.style.left = `${x - width / 2}px`;
-    tool.style.top = `${y - height - Number(String(Number(getDatasetValue(chart, DATA_ATTRIBUTE.PLOT_RADIUS, 3)) * 1.5))}px`
+    tool.style.top = `${y - height - Number(String(Number(getDatasetValue(chart, DATA_ATTRIBUTE.PLOT_RADIUS, 3)) * 1.5))}px`;
+  }).then(() => {
+    tool.style.opacity = '1';
   })
 }
 

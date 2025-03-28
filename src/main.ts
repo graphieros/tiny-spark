@@ -28,7 +28,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   data-number-rounding="2"
   data-indicator-color="#1A1A1A"
   data-indicator-width="1"
-  data-set="[${makeDs(6)}]"
+  data-set="[${makeDs(200)}]"
   data-dates='["jan", "feb", "mar", "apr", "may", "jun"]'
 >
 </div>
