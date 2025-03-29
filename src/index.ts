@@ -55,5 +55,5 @@ export function tinyDataset(arr: number[]) {
 }
 
 export function tinyDates(arr: string[]) {
-    `[${arr.map(_ => `"${_}"`).toString()}]`;
+    return `[${arr.map(_ => `"${_}"`).toString()}]`;
 }
