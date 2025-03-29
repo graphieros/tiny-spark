@@ -50,10 +50,6 @@ function CHECK(chart: TINY_SPARK) {
     }
 }
 
-export function tinyDataset(arr: number[]) {
-    return `[${arr.toString()}]`;
-}
-
-export function tinyDates(arr: string[]) {
-    return `[${arr.map(_ => `"${_}"`).toString()}]`;
+export function tinyFormat(arr: number[] | string[]) {
+    return JSON.stringify(arr);
 }
