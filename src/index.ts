@@ -49,3 +49,11 @@ function CHECK(chart: TINY_SPARK) {
         );
     }
 }
+
+export function tinyDataset(arr: number[]) {
+    return `[${arr.toString()}]`;
+}
+
+export function tinyDates(arr: string[]) {
+    `[${arr.map(_ => `"${_}"`).toString()}]`;
+}
