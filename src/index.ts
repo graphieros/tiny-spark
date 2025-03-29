@@ -1,11 +1,15 @@
 import { TINY_SPARK } from "../types";
-import { getCharts, observe, createLineChart, hasDataset } from "./lib";
+import { getCharts, observe, createLineChart, hasDataset, createUid } from "./lib";
 
 export function render() {
     const charts = getCharts();
     if (!charts.length) return;
 
     Array.from(charts).forEach((chart) => {
+
+        const uid = createUid()
+
+        chart.setAttribute('data-id', uid)
         const spark = chart as TINY_SPARK;
         CHECK(spark);
         spark.__renderCount = 0;
@@ -36,6 +40,7 @@ export function render() {
 
 function RENDER(chart: TINY_SPARK) {
     if (hasDataset(chart, 'set')) {
+        
         createLineChart(chart, chart.__renderCount < 2);
     }
     chart.__renderCount += 1;

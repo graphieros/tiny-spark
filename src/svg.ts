@@ -1,5 +1,4 @@
 import { TINY_SPARK, POINT, XMLNS, ANIMATION_DURATION } from "../types";
-import { createUid } from "./lib";
 
 export function SVG(chart: TINY_SPARK) {
     const { width, height } = chart.parentElement!.getBoundingClientRect();
@@ -7,7 +6,7 @@ export function SVG(chart: TINY_SPARK) {
     const viewBox = `0 0 ${width || fallback.width} ${height || fallback.height}`;
 
     const svg = document.createElementNS(XMLNS, 'svg');
-    const id = createUid();
+    const id = chart.dataset.id as string
     svg.id = id;
     svg.setAttribute('viewBox', viewBox);
     svg.style.width = '100%';

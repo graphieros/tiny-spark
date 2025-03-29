@@ -172,6 +172,10 @@ function clear(chart: TINY_SPARK) {
 }
 
 export function createLineChart(chart: TINY_SPARK, firstTime: boolean) {
+  const uid = chart.dataset.id;
+
+  console.log({uid})
+
   let animate = firstTime;
   clear(chart);
   const { svg, svgId, width, height } = SVG(chart);
