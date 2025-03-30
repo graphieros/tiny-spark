@@ -30,12 +30,16 @@ getData().then(render);
 // If you hardcode your dataset, you can call render immediately
 ```
 
+Calling render again will re-trigger the animation (if data-animation is set to "true").
+
 Just set up a div with a "tiny-spark" class, with a few data attributes to configure the chart.
+Note that providing data-id is optional, a unique id will be generated if you don't.
 
 ```html
 <div style="width: 100%">
   <div
     class="tiny-spark"
+    data-id="myId"
     data-curve="true"
     data-set="[1, 2, 3, 5, 8, 13]"
     data-dates='["01-2026", "02-2026", "03-2026", "04-2026", "05-2026", "06-2026"]'

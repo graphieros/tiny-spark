@@ -1,4 +1,4 @@
-import { CHART_TYPE, DATA, TINY_SPARK, POINT, XMLNS, DATA_ATTRIBUTE, ANIMATION_DURATION } from "../types"
+import { CHART_TYPE, TINY_SPARK, POINT, XMLNS, DATA_ATTRIBUTE, ANIMATION_DURATION } from "../types"
 import { animateAreaProgressively, animatePath, createSmoothPath, createStraightPath, SVG } from "./svg";
 
 export function getCharts() {
@@ -19,24 +19,6 @@ export function hasDataset(element: TINY_SPARK, name: string) {
 export function getDatasetValue(element: TINY_SPARK, name: string, fallback: number | string) {
   if (!hasDataset(element, name)) return fallback;
   return element.dataset[name]
-}
-
-export function observe(element: TINY_SPARK, render: () => void) {
-  const observer = new MutationObserver((mutationsList) => {
-    for (const mutation of mutationsList) {
-      if (
-        mutation.type === 'attributes' &&
-        mutation.attributeName &&
-        Object.values(DATA).includes(mutation.attributeName as DATA)
-      ) {
-        render();
-        break;
-      }
-    }
-  });
-
-  observer.observe(element, { attributes: true });
-  return observer;
 }
 
 export function getElementColors(element: TINY_SPARK) {
