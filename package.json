@@ -1,7 +1,8 @@
 {
   "name": "tiny-spark",
   "private": false,
-  "version": "0.2.8-beta.2",
+  "version": "0.2.8",
+  "type": "module",
   "description": "An elegant, reactive and responsive sparkline chart solution without dependency.",
   "author": "Alec Lloyd Probert",
   "main": "dist/tiny-spark.umd.js",
@@ -20,29 +21,14 @@
   "homepage": "https://tiny-spark.graphieros.com/",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build --config vite.config.core.js && vite build --config vite.config.react.js"
-  },
-  "exports": {
-    ".": {
-      "import": "./dist/tiny-spark.es.js",
-      "require": "./dist/tiny-spark.umd.js"
-    },
-    "./react": {
-      "import": "./dist/react/TinySparkChart.js",
-      "require": "./dist/react/TinySparkChart.js",
-      "default": "./dist/react/TinySparkChart.js"
-    }
+    "build": "tsc && vite build"
   },
   "files": [
     "dist"
   ],
   "devDependencies": {
     "@types/node": "^22.13.13",
-    "@types/react": "^19.0.12",
     "typescript": "~5.7.2",
     "vite": "^6.2.3"
-  },
-  "peerDependencies": {
-    "react": ">=16.8.0"
   }
 }
