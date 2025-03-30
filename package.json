@@ -29,7 +29,8 @@
       "require": "./dist/tiny-spark.umd.js"
     },
     "./react": {
-      "import": "./dist/react/TinySparkChart.js"
+      "import": "./dist/react/TinySparkChart.js",
+      "default": "./dist/react/TinySparkChart.js"
     }
   },
   "files": [
