@@ -2,7 +2,6 @@
   "name": "tiny-spark",
   "private": false,
   "version": "0.2.8-beta.1",
-  "type": "module",
   "description": "An elegant, reactive and responsive sparkline chart solution without dependency.",
   "author": "Alec Lloyd Probert",
   "main": "dist/tiny-spark.umd.js",
@@ -30,6 +29,7 @@
     },
     "./react": {
       "import": "./dist/react/TinySparkChart.js",
+      "require": "./dist/react/TinySparkChart.js",
       "default": "./dist/react/TinySparkChart.js"
     }
   },
