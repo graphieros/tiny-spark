@@ -1,7 +1,7 @@
 {
   "name": "tiny-spark",
   "private": false,
-  "version": "0.2.9",
+  "version": "0.2.10-beta.0",
   "type": "module",
   "description": "An elegant, reactive and responsive sparkline chart solution without dependency.",
   "author": "Alec Lloyd Probert",
