@@ -261,28 +261,35 @@ export function createLineChart(chart: TINY_SPARK, firstTime: boolean) {
   let plots: SVGCircleElement[] = [];
 
   // PLOTS
-  if (Number(String(getDatasetValue(chart, DATA_ATTRIBUTE.PLOT_RADIUS, 0))) > 0) {
-    allPoints.forEach(({ x, y, v }, i) => {
-      if (![null, undefined].includes(v)) {
-        const circle = document.createElementNS(XMLNS, 'circle');
-        circle.classList.add('tiny-spark-datapoint-circle');
-        circle.classList.add(`circle-${svgId}`);
-        circle.setAttribute('id', `circle_${svgId}_${i}`);
-        circle.setAttribute('cx', String(x || 0));
-        circle.setAttribute('cy', String(y || 0));
-        circle.setAttribute('r', String(getDatasetValue(chart, DATA_ATTRIBUTE.PLOT_RADIUS, 3)));
-        circle.setAttribute('fill', String(getDatasetValue(chart, DATA_ATTRIBUTE.PLOT_COLOR, String(getDatasetValue(chart, 'lineColor', color)))));
-        circle.setAttribute('stroke', backgroundColor);
-        circle.style.opacity = '0';
-        circle.style.transition = `opacity ${i * ((ANIMATION_DURATION * 2) / allPoints.length)}ms ease-in`;
-        svg.appendChild(circle);
-        plots.push(circle);
-      }
-    });
+  const hasPlotRadius = Number(String(getDatasetValue(chart, DATA_ATTRIBUTE.PLOT_RADIUS, 0))) > 0;
+  const isInPlotViewRange = !String(getDatasetValue(chart, DATA_ATTRIBUTE.HIDE_PLOTS_ABOVE, '')) || allPoints.length <= (Number(String(getDatasetValue(chart, DATA_ATTRIBUTE.HIDE_PLOTS_ABOVE, 0))));
+  const canShowPlots = hasPlotRadius && isInPlotViewRange;
+
+  if (hasPlotRadius) {
+      allPoints.forEach(({ x, y, v }, i) => {
+        if (![null, undefined].includes(v)) {
+          const circle = document.createElementNS(XMLNS, 'circle');
+          circle.classList.add('tiny-spark-datapoint-circle');
+          circle.classList.add(`circle-${svgId}`);
+          circle.setAttribute('id', `circle_${svgId}_${i}`);
+          circle.setAttribute('cx', String(x || 0));
+          circle.setAttribute('cy', String(y || 0));
+          circle.setAttribute('r', String(getDatasetValue(chart, DATA_ATTRIBUTE.PLOT_RADIUS, 3)));
+          circle.setAttribute('fill', String(getDatasetValue(chart, DATA_ATTRIBUTE.PLOT_COLOR, String(getDatasetValue(chart, 'lineColor', color)))));
+          circle.setAttribute('stroke', backgroundColor);
+          circle.style.opacity = '0';
+          circle.style.transition = `opacity ${i * ((ANIMATION_DURATION * 2) / allPoints.length)}ms ease-in`;
+          plots.push(circle);
+          if (canShowPlots) {
+            svg.appendChild(circle);
+          }
+        }
+      });
   }
 
   // TOOLTIP TRAPS
   allPoints.forEach((point, i) => {
+    const thatPlot = plots[i];
     const trap = document.createElementNS(XMLNS, 'rect');
     trap.classList.add('tiny-spark-tooltip-trap');
     trap.setAttribute('x', `${allPoints.length === 1 ? 0 : area.left + i * slot - slot / 2}`);
@@ -292,14 +299,22 @@ export function createLineChart(chart: TINY_SPARK, firstTime: boolean) {
     trap.setAttribute('fill', 'transparent');
     trap.addEventListener('mouseenter', () => {
       tooltip(svg, chart, point, svgId, true);
-      const circle = document.getElementById(`circle_${svgId}_${i}`);
-      circle?.setAttribute('r', String(Number(getDatasetValue(chart, DATA_ATTRIBUTE.PLOT_RADIUS, 3)) * 1.5))
+      if (canShowPlots) {
+        const circle = document.getElementById(`circle_${svgId}_${i}`);
+        circle?.setAttribute('r', String(Number(getDatasetValue(chart, DATA_ATTRIBUTE.PLOT_RADIUS, 3)) * 1.5))
+      } else {
+        svg.appendChild(thatPlot);
+      }
       indicators[i].style.opacity = '1';
     });
     trap.addEventListener('mouseout', () => {
       tooltip(svg, chart, point, svgId, false);
-      const circle = document.getElementById(`circle_${svgId}_${i}`);
-      circle?.setAttribute('r', String(Number(getDatasetValue(chart, DATA_ATTRIBUTE.PLOT_RADIUS, 3))))
+      if (canShowPlots) {
+        const circle = document.getElementById(`circle_${svgId}_${i}`);
+        circle?.setAttribute('r', String(Number(getDatasetValue(chart, DATA_ATTRIBUTE.PLOT_RADIUS, 3))))
+      } else {
+        thatPlot.remove();
+      }
       indicators.forEach(indicator => indicator.style.opacity = '0');
     });
     svg.appendChild(trap);

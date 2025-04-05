@@ -41,6 +41,7 @@ export enum DATA_ATTRIBUTE {
     PLOT_COLOR = 'plotColor',
     PLOT_RADIUS = 'plotRadius',
     SET = 'set',
+    HIDE_PLOTS_ABOVE = 'hidePlotsAbove'
 }
 
 export enum ELEMENT_DATASET {
@@ -59,4 +60,5 @@ export enum ELEMENT_DATASET {
     PLOT_COLOR = 'data-plot-color',
     PLOT_RADIUS = 'data-plot-radius',
     SET = 'data-set',
+    HIDE_PLOTS_ABOVE = 'data-hide-plots-above'
 }

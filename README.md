@@ -50,6 +50,7 @@ Note that providing data-id is optional, a unique id will be generated if you do
     data-line-thickness="4"
     data-plot-color="#2A2A2A"
     data-plot-radius="2"
+    data-hide-plots-above="100"
     data-number-locale="en-US"
     data-number-rounding="2"
     data-indicator-color="#1A1A1A"

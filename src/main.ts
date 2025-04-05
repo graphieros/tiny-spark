@@ -33,6 +33,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   data-line-color="#4A4A4A"
   data-area-color="#1A1A1A10"
   data-line-thickness="3"
+  data-hide-plots-above="100"
   data-responsive
   data-plot-color="#2A2A2A"
   data-plot-radius="${plotRadius}"

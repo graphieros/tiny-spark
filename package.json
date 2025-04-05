@@ -11,7 +11,8 @@
     "sparkline",
     "chart",
     "mini chart",
-    "line"
+    "line",
+    "framework agnostic"
   ],
   "license": "MIT",
   "repository": {
