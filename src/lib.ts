@@ -279,6 +279,7 @@ export function createLineChart(chart: TINY_SPARK, firstTime: boolean) {
           circle.setAttribute('stroke', backgroundColor);
           circle.style.opacity = '0';
           circle.style.transition = `opacity ${i * ((ANIMATION_DURATION * 2) / allPoints.length)}ms ease-in`;
+          circle.style.pointerEvents = 'none';
           plots.push(circle);
           if (canShowPlots) {
             svg.appendChild(circle);
