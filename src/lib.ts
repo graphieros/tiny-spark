@@ -294,13 +294,15 @@ export function createLineChart(chart: TINY_SPARK, firstTime: boolean) {
   let lastValueText: SVGTextElement | null = null
 
   if (showLastValue && allPoints.length && allPoints.at(-1)) {
+    const fontSize = Number(getDatasetValue(chart, DATA_ATTRIBUTE.LAST_VALUE_FONT_SIZE, 12))
+
     lastValueText = document.createElementNS(XMLNS, 'text');
     lastValueText.classList.add('tiny-spark-last-value');
     lastValueText.setAttribute('id', lastValueId);
-    lastValueText.setAttribute('x', String(allPoints.at(-1)!.x + Number(getDatasetValue(chart, DATA_ATTRIBUTE.LINE_THICKNESS, 2))));
-    lastValueText.setAttribute('y', String(allPoints.at(-1)!.y));
+    lastValueText.setAttribute('x', String(allPoints.at(-1)!.x + 6 + Number(getDatasetValue(chart, DATA_ATTRIBUTE.LINE_THICKNESS, 2))));
+    lastValueText.setAttribute('y', String(allPoints.at(-1)!.y + fontSize / 3));
     lastValueText.setAttribute('text-anchor', 'start');
-    lastValueText.setAttribute('font-size', String(getDatasetValue(chart, DATA_ATTRIBUTE.LAST_VALUE_FONT_SIZE, 12)) + 'px');
+    lastValueText.setAttribute('font-size', String(fontSize) + 'px');
     lastValueText.setAttribute('fill', String(getDatasetValue(chart, DATA_ATTRIBUTE.LAST_VALUE_COLOR, String(getDatasetValue(chart, DATA_ATTRIBUTE.INDICATOR_COLOR, '#1A1A1A')))));
     lastValueText.innerHTML = localeNum(chart, Number(allPoints.at(-1)!.v));
     lastValueText.style.opacity = '0';

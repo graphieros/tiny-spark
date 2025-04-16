@@ -12,7 +12,7 @@ export function SVG(chart: TINY_SPARK) {
 
     if (showLastValue && ![null, undefined].includes(lastValue)) {
         const rounding = Number(String(getDatasetValue(chart, DATA_ATTRIBUTE.NUMBER_ROUNDING, 0)));
-        offsetX = lastValue.toFixed(rounding).length * (Number(getDatasetValue(chart, DATA_ATTRIBUTE.LAST_VALUE_FONT_SIZE, 12)) / 2);
+        offsetX = 6 + lastValue.toFixed(rounding).length * (Number(getDatasetValue(chart, DATA_ATTRIBUTE.LAST_VALUE_FONT_SIZE, 12)) / 2);
     }
 
     const usedWidth = (width || fallback.width) + offsetX;
