@@ -1,9 +1,22 @@
-import { TINY_SPARK, POINT, XMLNS, ANIMATION_DURATION } from "../types";
+import { TINY_SPARK, POINT, XMLNS, ANIMATION_DURATION, DATA_ATTRIBUTE } from "../types";
+import { getDatasetValue, parseDataset } from "./lib";
 
 export function SVG(chart: TINY_SPARK) {
     const { width, height } = chart.parentElement!.getBoundingClientRect();
     const fallback = { width: 300, height: 100 };
-    const viewBox = `0 0 ${width || fallback.width} ${height || fallback.height}`;
+    
+    const showLastValue = String(getDatasetValue(chart, DATA_ATTRIBUTE.SHOW_LAST_VALUE, 'false')) === 'true';
+    const dataset = parseDataset(chart);
+    const lastValue = dataset && dataset.length ? dataset.at(-1) : null;
+    let offsetX = 0;
+
+    if (showLastValue && ![null, undefined].includes(lastValue)) {
+        const rounding = Number(String(getDatasetValue(chart, DATA_ATTRIBUTE.NUMBER_ROUNDING, 0)));
+        offsetX = lastValue.toFixed(rounding).length * (Number(getDatasetValue(chart, DATA_ATTRIBUTE.LAST_VALUE_FONT_SIZE, 12)) / 2);
+    }
+
+    const usedWidth = (width || fallback.width) + offsetX;
+    const viewBox = `0 0 ${usedWidth} ${height || fallback.height}`;
 
     const svg = document.createElementNS(XMLNS, 'svg');
     const id = chart.dataset.id as string
@@ -79,7 +92,7 @@ export function createSmoothPath(points: POINT[]) {
     return path.join(' ');
 }
 
-export function animatePath(path: SVGPathElement, duration = ANIMATION_DURATION) {
+export function animatePath(path: SVGPathElement, duration = ANIMATION_DURATION, callback?: () => void) {
     path.style.opacity = '1';
     const totalLength = path.getTotalLength();
     path.style.strokeDasharray = String(totalLength);
@@ -90,6 +103,7 @@ export function animatePath(path: SVGPathElement, duration = ANIMATION_DURATION)
     path.addEventListener('transitionend', function handler() {
         path.style.transition = '';
         path.removeEventListener('transitionend', handler);
+        callback && callback();
     });
 }
 

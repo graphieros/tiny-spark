@@ -55,6 +55,9 @@ Note that providing data-id is optional, a unique id will be generated if you do
     data-number-rounding="2"
     data-indicator-color="#1A1A1A"
     data-indicator-width="1"
+    data-show-last-value="true"
+    data-last-value-font-size="12"
+    data-last-value-color="#1A1A1A"
   ></div>
 </div>
 ```

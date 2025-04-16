@@ -43,6 +43,9 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   data-indicator-width="1"
   data-set="[${makeDs(200)}]"
   data-dates='["jan", "feb", "mar", "apr", "may", "jun"]'
+  data-show-last-value="true"
+  data-last-value-font-size="12"
+  data-last-value-color="red"
 >
 </div>
 </div>
