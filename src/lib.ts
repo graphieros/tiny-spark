@@ -279,7 +279,7 @@ export function createLineChart(chart: TINY_SPARK, firstTime: boolean) {
           circle.setAttribute('r', String(getDatasetValue(chart, DATA_ATTRIBUTE.PLOT_RADIUS, 3)));
           circle.setAttribute('fill', String(getDatasetValue(chart, DATA_ATTRIBUTE.PLOT_COLOR, String(getDatasetValue(chart, 'lineColor', color)))));
           circle.setAttribute('stroke', backgroundColor);
-          circle.style.opacity = '0';
+          circle.style.opacity = allPoints.length === 1 ? '1' : '0';
           circle.style.transition = `opacity ${i * ((ANIMATION_DURATION * 2) / allPoints.length)}ms ease-in`;
           circle.style.pointerEvents = 'none';
           plots.push(circle);
@@ -305,7 +305,7 @@ export function createLineChart(chart: TINY_SPARK, firstTime: boolean) {
     lastValueText.setAttribute('font-size', String(fontSize) + 'px');
     lastValueText.setAttribute('fill', String(getDatasetValue(chart, DATA_ATTRIBUTE.LAST_VALUE_COLOR, String(getDatasetValue(chart, DATA_ATTRIBUTE.INDICATOR_COLOR, '#1A1A1A')))));
     lastValueText.innerHTML = localeNum(chart, Number(allPoints.at(-1)!.v));
-    lastValueText.style.opacity = '0';
+    lastValueText.style.opacity = allPoints.length === 1 ? '1' : '0';
     svg.appendChild(lastValueText);
   }
 
