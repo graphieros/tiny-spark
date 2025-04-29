@@ -123,11 +123,16 @@ export function tooltip(svg: SVGSVGElement, chart: TINY_SPARK, point: POINT, id:
   tool.style.opacity = '0';
   tool.classList.add('tiny-spark-tooltip');
   tool.setAttribute('id', `tooltip_${id}`);
+  tool.setAttribute('role', 'tooltip');
+  tool.setAttribute('aria-live', 'polite');
+  tool.setAttribute('aria-hidden', String(!show))
+
   tool.style.pointerEvents = 'none';
   tool.style.position = 'fixed';
   tool.style.top = y + 'px';
   tool.style.left = x + 'px';
   tool.style.width = 'fit-content';
+
   tool.innerHTML = `
     <div class="tiny-spark-tooltip-content">${!point.d ? '' : `${point.d}: `}${[null, undefined].includes(point.v as any) ? '-' : localeNum(chart, Number(point.v))}</div>
   `;
@@ -319,6 +324,7 @@ export function createLineChart(chart: TINY_SPARK, firstTime: boolean) {
     trap.setAttribute('height', `${area.height}`);
     trap.setAttribute('width', `${slot}`);
     trap.setAttribute('fill', 'transparent');
+    trap.setAttribute('aria-describedby', `tooltip_${svgId}`)
     trap.addEventListener('mouseenter', () => {
       tooltip(svg, chart, point, svgId, true);
       if (canShowPlots) {
