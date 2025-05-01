@@ -49,7 +49,8 @@ export enum DATA_ATTRIBUTE {
     HIDE_PLOTS_ABOVE = 'hidePlotsAbove',
     SHOW_LAST_VALUE = 'showLastValue',
     LAST_VALUE_FONT_SIZE = 'lastValueFontSize',
-    LAST_VALUE_COLOR = 'lastValueColor'
+    LAST_VALUE_COLOR = 'lastValueColor',
+    TYPE = 'type'
 }
 
 export enum ELEMENT_DATASET {
@@ -71,5 +72,6 @@ export enum ELEMENT_DATASET {
     HIDE_PLOTS_ABOVE = 'data-hide-plots-above',
     SHOW_LAST_VALUE = 'data-show-last-value',
     LAST_VALUE_FONT_SIZE = 'data-last-value-font-size',
-    LAST_VALUE_COLOR = 'data-last-value-color'
+    LAST_VALUE_COLOR = 'data-last-value-color',
+    TYPE = 'data-type'
 }
