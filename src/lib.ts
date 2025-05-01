@@ -6,11 +6,6 @@ export function getCharts() {
   return charts
 }
 
-export function isChartOfType(element: TINY_SPARK, type: CHART_TYPE) {
-  const attrs = Object.keys(element.dataset)
-  return attrs.includes(type)
-}
-
 export function hasDataset(element: TINY_SPARK, name: string) {
   const attrs = Object.keys(element.dataset)
   return attrs.includes(name)
@@ -118,7 +113,17 @@ export function domPlot(svg: SVGSVGElement, svgX: number, svgY: number) {
 export function tooltip(svg: SVGSVGElement, chart: TINY_SPARK, point: POINT, id: string, show: boolean) {
   nukeTooltip(id);
   if (!show) return;
-  const { x, y } = domPlot(svg, point.x, point.y);
+  const isBar = chart.dataset.type && chart.dataset.type === CHART_TYPE.BAR
+
+  const x = domPlot(svg, point.x, point.y).x;
+  let y = 0;
+
+  if (isBar && !point.isPositive) {
+    y = domPlot(svg, point.x, point.bar.y).y;
+  } else {
+    y = domPlot(svg, point.x, point.y).y;
+  }
+
   const tool = document.createElement('div');
   tool.style.opacity = '0';
   tool.classList.add('tiny-spark-tooltip');
@@ -129,7 +134,13 @@ export function tooltip(svg: SVGSVGElement, chart: TINY_SPARK, point: POINT, id:
 
   tool.style.pointerEvents = 'none';
   tool.style.position = 'fixed';
-  tool.style.top = y + 'px';
+
+  if (isBar) {
+    tool.style.top = y + 'px'
+  } else {
+    tool.style.top = y + 'px';
+  }
+
   tool.style.left = x + 'px';
   tool.style.width = 'fit-content';
 
@@ -158,10 +169,12 @@ function clear(chart: TINY_SPARK) {
   chart.innerHTML = ''
 }
 
-export function createLineChart(chart: TINY_SPARK, firstTime: boolean) {
+export function createChart(chart: TINY_SPARK, firstTime: boolean) {
+  const isBar = chart.dataset.type && chart.dataset.type === 'bar';
+
   let animate = firstTime;
   clear(chart);
-  const { svg, svgId, width, height } = SVG(chart);
+  const { svg, svgId, width, height, viewBox } = SVG(chart);
   const { color, backgroundColor } = getElementColors(chart)
 
   const padding = { T: 12, R: 12, B: 12, L: 12 };
@@ -184,8 +197,15 @@ export function createLineChart(chart: TINY_SPARK, firstTime: boolean) {
     return [null, undefined].includes(d) ? d : d + (MIN < 0 ? Math.abs(MIN) : 0)
   });
   const { max } = minMax(positiveDataset);
-  const slot = area.width / (dataset.length - 1) === Infinity ? area.width : area.width / (dataset.length - 1);
+  let slot = area.width / (dataset.length - 1) === Infinity ? area.width : area.width / (dataset.length - 1);
 
+  if (isBar) {
+    const [v_0, v_1, v_2, v_3] = viewBox.split(' ');
+    // Add padding to leave space for bars
+    svg.setAttribute('viewBox', `${Number(v_0) - slot / 2} ${v_1} ${Number(v_2) + slot} ${v_3}`)
+  }
+
+  const allNeg = !dataset.some(d => d >= 0);
   const dates = getDates(chart);
 
   // DATAPOINTS
@@ -194,55 +214,68 @@ export function createLineChart(chart: TINY_SPARK, firstTime: boolean) {
       w: positiveDataset.length === 1 ? slot / 2 : 0,
       h: positiveDataset.length === 1 ? area.height / 2 : 0
     }
+
+    const x = area.left + ((slot * i)) + uniqueCase.w;
+    const y = ((1 - ((d || 0) / max)) * area.height) + uniqueCase.h + padding.T;
+    const y_0 = ((1 - ((MIN < 0 ? Math.abs(MIN) : 0) / max)) * area.height) + padding.T + uniqueCase.h;
+
+    const isPositive = dataset[i] >= 0
+
     return {
-      y: ((1 - ((d || 0) / max)) * area.height) + padding.T + uniqueCase.h,
-      x: area.left + ((slot * i)) + uniqueCase.w,
-      v: d,
-      d: dates[i] || null
+      y: allNeg && dataset.length === 1 ? area.top + area.height / 2 : y,
+      x,
+      v: dataset[i],
+      d: dates[i] || null,
+      isPositive,
+      bar: {
+        x: x - slot / 2,
+        y: dataset.length === 1 ? area.top : isPositive ? y : allNeg ? area.top : y_0,
+        h: dataset.length === 1 ? area.height : isPositive ? y_0 - y : allNeg && dataset.length === 0 ? area.height : isNaN(y - y_0) ? 0 : y - y_0,
+        w: slot
+      }
     }
   })
 
   const points = [...allPoints].filter(({ v }) => ![null, undefined].includes(v));
-
-  // PATH & AREA
+  const animation = chart.getAttribute('data-animation');
   const path = document.createElementNS(XMLNS, 'path');
   path.classList.add('tiny-spark-line-path');
-
-  if (!chart.dataset.curve || chart.dataset.curve === 'true') {
-    path.setAttribute('d', `M ${createSmoothPath(points)}`);
-  } else {
-    path.setAttribute('d', `M ${createStraightPath(points)}`);
-  }
-
-  path.setAttribute('fill', 'none');
-  path.setAttribute('stroke', String(getDatasetValue(chart, DATA_ATTRIBUTE.LINE_COLOR, color)));
-  path.setAttribute('stroke-width', String(getDatasetValue(chart, DATA_ATTRIBUTE.LINE_THICKNESS, 2)));
-  path.setAttribute('stroke-linecap', 'round');
-  
-  
   const pathArea = document.createElementNS(XMLNS, 'path');
   pathArea.classList.add('tiny-spark-line-area');
 
-  const animation = chart.getAttribute('data-animation');
+  // PATH & AREA
+  if (!isBar) {
   
-  if (animation === 'true' && animate) {
-    path.style.opacity = '0'
-    pathArea.style.opacity = '0'
-  }
-
-  if (allPoints.length) {
     if (!chart.dataset.curve || chart.dataset.curve === 'true') {
-      pathArea.setAttribute('d', `M ${points[0].x},${area.bottom} ${createSmoothPath(points)} L ${points.at(-1)!.x},${area.bottom} Z`);
+      path.setAttribute('d', `M ${createSmoothPath(points)}`);
     } else {
-      pathArea.setAttribute('d', `M ${points[0].x},${area.bottom} ${createStraightPath(points)} L ${points.at(-1)!.x},${area.bottom} Z`);
+      path.setAttribute('d', `M ${createStraightPath(points)}`);
     }
-  }
-
-  pathArea.setAttribute('fill', String(getDatasetValue(chart, DATA_ATTRIBUTE.AREA_COLOR, 'transparent')));
-
-  if (allPoints.length > 1) {
-    svg.appendChild(pathArea);
-    svg.appendChild(path);
+  
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', String(getDatasetValue(chart, DATA_ATTRIBUTE.LINE_COLOR, color)));
+    path.setAttribute('stroke-width', String(getDatasetValue(chart, DATA_ATTRIBUTE.LINE_THICKNESS, 2)));
+    path.setAttribute('stroke-linecap', 'round');
+    
+    if (animation === 'true' && animate) {
+      path.style.opacity = '0'
+      pathArea.style.opacity = '0'
+    }
+  
+    if (allPoints.length) {
+      if (!chart.dataset.curve || chart.dataset.curve === 'true') {
+        pathArea.setAttribute('d', `M ${points[0].x},${area.bottom} ${createSmoothPath(points)} L ${points.at(-1)!.x},${area.bottom} Z`);
+      } else {
+        pathArea.setAttribute('d', `M ${points[0].x},${area.bottom} ${createStraightPath(points)} L ${points.at(-1)!.x},${area.bottom} Z`);
+      }
+    }
+  
+    pathArea.setAttribute('fill', String(getDatasetValue(chart, DATA_ATTRIBUTE.AREA_COLOR, 'transparent')));
+  
+    if (allPoints.length > 1) {
+      svg.appendChild(pathArea);
+      svg.appendChild(path);
+    }
   }
 
   const indicators: SVGLineElement[] = [];
@@ -266,13 +299,33 @@ export function createLineChart(chart: TINY_SPARK, firstTime: boolean) {
   })
 
   let plots: SVGCircleElement[] = [];
+  let bars: SVGRectElement[] = [];
 
   // PLOTS
   const hasPlotRadius = Number(String(getDatasetValue(chart, DATA_ATTRIBUTE.PLOT_RADIUS, 0))) > 0;
   const isInPlotViewRange = !String(getDatasetValue(chart, DATA_ATTRIBUTE.HIDE_PLOTS_ABOVE, '')) || allPoints.length <= (Number(String(getDatasetValue(chart, DATA_ATTRIBUTE.HIDE_PLOTS_ABOVE, 0))));
   const canShowPlots = hasPlotRadius && isInPlotViewRange;
 
-  if (hasPlotRadius) {
+  // BARS
+  if (isBar) {
+    allPoints.forEach(({ bar, v }, i) => {
+      if (![null, undefined].includes(v)) {
+        const rect = document.createElementNS(XMLNS, 'rect');
+        rect.classList.add('tiny-spark-datapoint-bar');
+        rect.setAttribute('x', String(bar.x));
+        rect.setAttribute('y', String(bar.y));
+        rect.setAttribute('width', String(bar.w));
+        rect.setAttribute('height', String(bar.h));
+        rect.setAttribute('fill', String(getDatasetValue(chart, DATA_ATTRIBUTE.PLOT_COLOR, String(getDatasetValue(chart, 'lineColor', color)))))
+        rect.style.opacity = allPoints.length === 1 ? '1' : '0';
+        rect.style.transition = `opacity ${i * ((ANIMATION_DURATION * 2) / allPoints.length)}ms ease-in`;
+        bars.push(rect);
+        svg.appendChild(rect)
+      }
+    })
+  }
+
+  if (hasPlotRadius && !isBar) {
       allPoints.forEach(({ x, y, v }, i) => {
         if (![null, undefined].includes(v)) {
           const circle = document.createElementNS(XMLNS, 'circle');
@@ -304,9 +357,17 @@ export function createLineChart(chart: TINY_SPARK, firstTime: boolean) {
     lastValueText = document.createElementNS(XMLNS, 'text');
     lastValueText.classList.add('tiny-spark-last-value');
     lastValueText.setAttribute('id', lastValueId);
-    lastValueText.setAttribute('x', String(allPoints.at(-1)!.x + 6 + Number(getDatasetValue(chart, DATA_ATTRIBUTE.LINE_THICKNESS, 2))));
-    lastValueText.setAttribute('y', String(allPoints.at(-1)!.y + fontSize / 3));
-    lastValueText.setAttribute('text-anchor', 'start');
+
+    if (isBar) {
+      lastValueText.setAttribute('x', String(allPoints.at(-1)!.x + Number(getDatasetValue(chart, DATA_ATTRIBUTE.LINE_THICKNESS, 2))));
+      lastValueText.setAttribute('y', allPoints.at(-1)?.isPositive ? String(allPoints.at(-1)!.y - fontSize / 3) : String(allPoints.at(-1)!.bar.y + allPoints.at(-1)!.bar.h + fontSize));
+      lastValueText.setAttribute('text-anchor', 'middle');
+    } else {
+      lastValueText.setAttribute('x', String(allPoints.at(-1)!.x + 6 + Number(getDatasetValue(chart, DATA_ATTRIBUTE.LINE_THICKNESS, 2))));
+      lastValueText.setAttribute('y', String(allPoints.at(-1)!.y + fontSize / 3));
+      lastValueText.setAttribute('text-anchor', 'start');
+    }
+
     lastValueText.setAttribute('font-size', String(fontSize) + 'px');
     lastValueText.setAttribute('fill', String(getDatasetValue(chart, DATA_ATTRIBUTE.LAST_VALUE_COLOR, String(getDatasetValue(chart, DATA_ATTRIBUTE.INDICATOR_COLOR, '#1A1A1A')))));
     lastValueText.innerHTML = localeNum(chart, Number(allPoints.at(-1)!.v));
@@ -364,6 +425,9 @@ export function createLineChart(chart: TINY_SPARK, firstTime: boolean) {
       plots.forEach(circle => {
         circle.style.opacity = '1'
       })
+      bars.forEach(bar => {
+        bar.style.opacity = '1'
+      })
       animatePath(path, ANIMATION_DURATION, () => {
         if (lastValueText) {
           lastValueText.style.opacity = '1';
@@ -374,6 +438,9 @@ export function createLineChart(chart: TINY_SPARK, firstTime: boolean) {
   } else {
     plots.forEach(circle => {
       circle.style.opacity = '1'
+    });
+    bars.forEach(bar => {
+      bar.style.opacity = '1'
     });
     if (lastValueText) {
       lastValueText.style.opacity = '1';

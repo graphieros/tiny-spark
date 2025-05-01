@@ -1,6 +1,6 @@
 import './style.css'
 // @ts-ignore
-import { render } from "../dist/tiny-spark.es";
+import { render } from '../src/index';
 
 setTimeout(render);
 
@@ -16,7 +16,7 @@ setTimeout(() => {
 function makeDs(n: number) {
   let arr = [];
   for(let i = 0; i < n; i += 1) {
-    arr.push(Math.random());
+    arr.push(i % 2 === 0 ? Math.random() * 10 : Math.random() * -10);
   }
   return arr.toString();
 }
@@ -25,9 +25,10 @@ function makeDs(n: number) {
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 <div style="width:100%">
-<div 
+<div
   class="tiny-spark"
   data-id="test"
+  data-type="bar"
   data-curve="true"
   data-animation="true"
   data-line-color="#4A4A4A"
@@ -41,7 +42,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   data-number-rounding="2"
   data-indicator-color="#1A1A1A"
   data-indicator-width="1"
-  data-set="[${makeDs(100)}]"
+  data-set="[${makeDs(9)}]"
   data-dates='["jan", "feb", "mar", "apr", "may", "jun"]'
   data-show-last-value="true"
   data-last-value-font-size="12"

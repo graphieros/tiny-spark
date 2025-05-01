@@ -10,7 +10,9 @@ export function SVG(chart: TINY_SPARK) {
     const lastValue = dataset && dataset.length ? dataset.at(-1) : null;
     let offsetX = 0;
 
-    if (showLastValue && ![null, undefined].includes(lastValue)) {
+    const isBar = chart.dataset.type && chart.dataset.type === 'bar'
+
+    if (!isBar && showLastValue && ![null, undefined].includes(lastValue)) {
         const rounding = Number(String(getDatasetValue(chart, DATA_ATTRIBUTE.NUMBER_ROUNDING, 0)));
         offsetX = 6 + lastValue.toFixed(rounding).length * (Number(getDatasetValue(chart, DATA_ATTRIBUTE.LAST_VALUE_FONT_SIZE, 12)) / 2);
     }
@@ -29,7 +31,8 @@ export function SVG(chart: TINY_SPARK) {
         svg,
         svgId: id,
         width: width || fallback.width,
-        height: height || fallback.height
+        height: height || fallback.height,
+        viewBox
     }
 }
 

@@ -1,5 +1,5 @@
 import { ELEMENT_DATASET, TINY_SPARK } from "../types";
-import { getCharts, createLineChart, hasDataset, createUid, nextTick } from "./lib";
+import { getCharts, createChart, hasDataset, createUid, nextTick } from "./lib";
 
 export function render() {
     const charts = getCharts();
@@ -46,7 +46,7 @@ export function render() {
 
 function RENDER(chart: TINY_SPARK) {
     if (hasDataset(chart, 'set')) {
-        createLineChart(chart, chart.__renderCount < 2);
+        createChart(chart, chart.__renderCount < 2);
     }
     chart.__renderCount += 1;
 }

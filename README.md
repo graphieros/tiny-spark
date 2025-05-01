@@ -35,11 +35,14 @@ Calling render again will re-trigger the animation (if data-animation is set to 
 Just set up a div with a "tiny-spark" class, with a few data attributes to configure the chart.
 Note that providing data-id is optional, a unique id will be generated if you don't.
 
+Render a line chart:
+
 ```html
 <div style="width: 100%">
   <div
     class="tiny-spark"
     data-id="myId"
+    data-type="line"
     data-curve="true"
     data-set="[1, 2, 3, 5, 8, 13]"
     data-dates='["01-2026", "02-2026", "03-2026", "04-2026", "05-2026", "06-2026"]'
@@ -55,6 +58,30 @@ Note that providing data-id is optional, a unique id will be generated if you do
     data-number-rounding="2"
     data-indicator-color="#1A1A1A"
     data-indicator-width="1"
+    data-show-last-value="true"
+    data-last-value-font-size="12"
+    data-last-value-color="#1A1A1A"
+  ></div>
+</div>
+```
+
+Render a bar chart:
+
+```html
+<div style="width: 100%">
+  <div
+    class="tiny-spark"
+    data-id="myId"
+    data-type="bar"
+    data-set="[1, 2, 3, 5, 8, 13]"
+    data-dates='["01-2026", "02-2026", "03-2026", "04-2026", "05-2026", "06-2026"]'
+    data-responsive
+    data-animation="true"
+    data-line-thickness="4"
+    data-plot-color="#2A2A2A"
+    data-number-locale="en-US"
+    data-number-rounding="2"
+    data-indicator-width="0"
     data-show-last-value="true"
     data-last-value-font-size="12"
     data-last-value-color="#1A1A1A"

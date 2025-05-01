@@ -23,7 +23,12 @@ export enum DATA {
     RESPONSIVE = 'data-responsive'
 }
 
-export type POINT = { x: number; y: number, v: number | null | undefined, d: string | null | undefined }
+export type POINT = { x: number; y: number, v: number | null | undefined, d: string | null | undefined, isPositive: boolean, bar: {
+    x: number
+    y: number
+    h: number
+    w:number
+} }
 
 export enum DATA_ATTRIBUTE {
     ANIMATION = 'animation',
