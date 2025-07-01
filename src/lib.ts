@@ -1,4 +1,4 @@
-import { CHART_TYPE, TINY_SPARK, POINT, XMLNS, DATA_ATTRIBUTE, ANIMATION_DURATION } from "../types"
+import { CHART_TYPE, TINY_SPARK, POINT, XMLNS, DATA_ATTRIBUTE, ANIMATION_DURATION, TooltipState } from "../types"
 import { animateAreaProgressively, animatePath, createSmoothPath, createStraightPath, SVG } from "./svg";
 
 export function getCharts() {
@@ -110,58 +110,101 @@ export function domPlot(svg: SVGSVGElement, svgX: number, svgY: number) {
   return { x: domPoint.x, y: domPoint.y };
 }
 
-export function tooltip(svg: SVGSVGElement, chart: TINY_SPARK, point: POINT, id: string, show: boolean) {
-  nukeTooltip(id);
-  if (!show) return;
-  const isBar = chart.dataset.type && chart.dataset.type === CHART_TYPE.BAR
+const tooltipStates: Record<string, TooltipState> = {}
 
-  const x = domPlot(svg, point.x, point.y).x;
-  let y = 0;
+export function tooltip(
+  svg: SVGSVGElement,
+  chart: TINY_SPARK,
+  point: POINT,
+  id: string,
+  show: boolean
+) {
+  let state = tooltipStates[id];
 
-  if (isBar && !point.isPositive) {
-    y = domPlot(svg, point.x, point.bar.y).y;
-  } else {
-    y = domPlot(svg, point.x, point.y).y;
+  if (!show) {
+    if (state) {
+      cancelAnimationFrame(state.frameId!);
+      state.frameId = null;
+      state.tool.style.opacity = '0';
+    }
+    return
   }
 
-  const tool = document.createElement('div');
-  tool.style.opacity = '0';
-  tool.classList.add('tiny-spark-tooltip');
-  tool.setAttribute('id', `tooltip_${id}`);
-  tool.setAttribute('role', 'tooltip');
-  tool.setAttribute('aria-live', 'polite');
-  tool.setAttribute('aria-hidden', String(!show))
+  const isBar = chart.dataset.type === CHART_TYPE.BAR;
+  const { x, y } = domPlot(
+    svg,
+    point.x,
+    isBar && !point.isPositive ? point.bar.y : point.y
+  );
 
-  tool.style.pointerEvents = 'none';
-  tool.style.position = 'fixed';
+  if (!state) {
+    const tool = document.createElement('div');
+    tool.classList.add('tiny-spark-tooltip');
+    tool.setAttribute('id', `tooltip_${id}`);
+    tool.setAttribute('role', 'tooltip');
+    tool.setAttribute('aria-live', 'polite');
+    tool.style.position = 'fixed';
+    tool.style.pointerEvents = 'none';
+    tool.style.opacity = '0';
+    tool.style.willChange = 'top, left';
+    document.body.appendChild(tool);
 
-  if (isBar) {
-    tool.style.top = y + 'px'
-  } else {
-    tool.style.top = y + 'px';
+    state = tooltipStates[id] = {
+      targetX: 0,
+      targetY: 0,
+      displayX: 0,
+      displayY: 0,
+      frameId: null,
+      tool,
+      width: 0,
+      height: 0,
+      hasSnapped: false
+    }
   }
 
-  tool.style.left = x + 'px';
-  tool.style.width = 'fit-content';
-
-  tool.innerHTML = `
-    <div class="tiny-spark-tooltip-content">${!point.d ? '' : `${point.d}: `}${[null, undefined].includes(point.v as any) ? '-' : localeNum(chart, Number(point.v))}</div>
+  state.tool.setAttribute('aria-hidden', 'false');
+  state.tool.innerHTML = `
+    <div class="tiny-spark-tooltip-content">
+      ${point.d ? `${point.d}: ` : ''}${
+    [null, undefined].includes(point.v as any)
+      ? '-'
+      : localeNum(chart, Number(point.v))
+  }
+    </div>
   `;
-  document.body.appendChild(tool);
-  nextTick().then(() => {
-    const { width, height } = tool.getBoundingClientRect()
-    tool.style.left = `${x - width / 2}px`;
-    tool.style.top = `${y - height - Number(String(Number(getDatasetValue(chart, DATA_ATTRIBUTE.PLOT_RADIUS, 3)) * 1.5))}px`;
-  }).then(() => {
-    tool.style.opacity = '1';
-  })
-}
 
-export function nukeTooltip(id: string) {
-  const t = document.getElementById(`tooltip_${id}`);
-  t?.remove();
-}
+  const { width: w, height: h } = state.tool.getBoundingClientRect();
+  state.width  = w;
+  state.height = h;
 
+  const radius = Number(getDatasetValue(chart, DATA_ATTRIBUTE.PLOT_RADIUS, 3));
+  state.targetX = x - state.width  / 2;
+  state.targetY = y - state.height - radius * 1.5;
+
+  if (!state.hasSnapped) {
+    state.displayX = state.targetX;
+    state.displayY = state.targetY;
+    state.tool.style.left = `${state.displayX}px`;
+    state.tool.style.top = `${state.displayY}px`;
+    state.tool.style.opacity = '1';
+    state.hasSnapped = true;
+    return;
+  }
+
+  const SMOOTHING = Number(getDatasetValue(chart, DATA_ATTRIBUTE.TOOLTIP_SMOOTHING, 1)) / 10;
+
+  function animate() {
+    state.displayX += (state.targetX - state.displayX) * SMOOTHING;
+    state.displayY += (state.targetY - state.displayY) * SMOOTHING;
+
+    state.tool.style.left   = `${Math.round(state.displayX)}px`;
+    state.tool.style.top    = `${Math.round(state.displayY)}px`;
+    state.tool.style.opacity = '1';
+
+    state.frameId = requestAnimationFrame(animate);
+  }
+  if (state.frameId == null) animate();
+}
 
 /////////////////////////////////////////////////////
 
@@ -175,7 +218,7 @@ export function createChart(chart: TINY_SPARK, firstTime: boolean) {
   let animate = firstTime;
   clear(chart);
   const { svg, svgId, width, height, viewBox } = SVG(chart);
-  const { color, backgroundColor } = getElementColors(chart)
+  const { color, backgroundColor } = getElementColors(chart);
 
   const padding = { T: 12, R: 12, B: 12, L: 12 };
   const lastValueId = createUid();
@@ -448,4 +491,14 @@ export function createChart(chart: TINY_SPARK, firstTime: boolean) {
   }
 
   chart.appendChild(svg);
+
+  chart.addEventListener('mouseleave', () => {
+    const st = tooltipStates[svgId];
+    if (st) {
+      cancelAnimationFrame(st.frameId!);
+      st.frameId = null;
+      st.tool.style.opacity = '0';
+      st.hasSnapped = false;
+    }
+  });
 }

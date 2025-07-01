@@ -50,7 +50,8 @@ export enum DATA_ATTRIBUTE {
     SHOW_LAST_VALUE = 'showLastValue',
     LAST_VALUE_FONT_SIZE = 'lastValueFontSize',
     LAST_VALUE_COLOR = 'lastValueColor',
-    TYPE = 'type'
+    TYPE = 'type',
+    TOOLTIP_SMOOTHING = 'tooltipSmoothing'
 }
 
 export enum ELEMENT_DATASET {
@@ -73,5 +74,18 @@ export enum ELEMENT_DATASET {
     SHOW_LAST_VALUE = 'data-show-last-value',
     LAST_VALUE_FONT_SIZE = 'data-last-value-font-size',
     LAST_VALUE_COLOR = 'data-last-value-color',
-    TYPE = 'data-type'
+    TYPE = 'data-type',
+    TOOLTIP_SMOOTHING = 'data-tooltip-smoothing'
+}
+
+export type TooltipState = {
+    targetX: number
+    targetY: number
+    displayX: number
+    displayY: number
+    frameId: number | null
+    tool: HTMLDivElement
+    width: number
+    height: number
+    hasSnapped: boolean
 }

@@ -61,6 +61,7 @@ Render a line chart:
     data-show-last-value="true"
     data-last-value-font-size="12"
     data-last-value-color="#1A1A1A"
+    data-tooltip-smoothing="1"
   ></div>
 </div>
 ```
@@ -85,6 +86,7 @@ Render a bar chart:
     data-show-last-value="true"
     data-last-value-font-size="12"
     data-last-value-color="#1A1A1A"
+    data-tooltip-smoothing="1"
   ></div>
 </div>
 ```

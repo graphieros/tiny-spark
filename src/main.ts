@@ -46,6 +46,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   data-show-last-value="true"
   data-last-value-font-size="12"
   data-last-value-color="red"
+  data-tooltip-smoothing="1"
 ></div>
 </div>
 <div style="width:100%">
@@ -70,6 +71,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   data-show-last-value="true"
   data-last-value-font-size="12"
   data-last-value-color="red"
+  data-tooltip-smoothing="0.5"
 ></div>
 </div>
 `

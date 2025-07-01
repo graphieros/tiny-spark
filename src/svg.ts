@@ -1,5 +1,6 @@
 import { TINY_SPARK, POINT, XMLNS, ANIMATION_DURATION, DATA_ATTRIBUTE } from "../types";
 import { getDatasetValue, parseDataset } from "./lib";
+import pack from "../package.json";
 
 export function SVG(chart: TINY_SPARK) {
     const { width, height } = chart.parentElement!.getBoundingClientRect();
@@ -26,6 +27,11 @@ export function SVG(chart: TINY_SPARK) {
     svg.setAttribute('viewBox', viewBox);
     svg.style.width = '100%';
     svg.style.height = '100%';
+
+    const desc = document.createElementNS(XMLNS, 'desc');
+    desc.setAttribute('aria-hidden', 'true');
+    desc.innerHTML = `Composed with tiny-spark v${pack.version}`;
+    svg.appendChild(desc);
 
     return {
         svg,
