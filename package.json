@@ -28,8 +28,8 @@
     "dist"
   ],
   "devDependencies": {
-    "@types/node": "^22.13.13",
-    "typescript": "~5.7.2",
-    "vite": "^6.3.4"
+    "@types/node": "^24.0.8",
+    "typescript": "~5.8.3",
+    "vite": "^7.0.0"
   }
 }
