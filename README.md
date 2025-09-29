@@ -44,6 +44,7 @@ Render a line chart:
     data-id="myId"
     data-type="line"
     data-curve="true"
+    data-cut-null="false"
     data-set="[1, 2, 3, 5, 8, 13]"
     data-dates='["01-2026", "02-2026", "03-2026", "04-2026", "05-2026", "06-2026"]'
     data-responsive
