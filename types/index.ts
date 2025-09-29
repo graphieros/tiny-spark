@@ -51,7 +51,8 @@ export enum DATA_ATTRIBUTE {
     LAST_VALUE_FONT_SIZE = 'lastValueFontSize',
     LAST_VALUE_COLOR = 'lastValueColor',
     TYPE = 'type',
-    TOOLTIP_SMOOTHING = 'tooltipSmoothing'
+    TOOLTIP_SMOOTHING = 'tooltipSmoothing',
+    CUT_NULL = 'cutNull'
 }
 
 export enum ELEMENT_DATASET {
@@ -75,7 +76,8 @@ export enum ELEMENT_DATASET {
     LAST_VALUE_FONT_SIZE = 'data-last-value-font-size',
     LAST_VALUE_COLOR = 'data-last-value-color',
     TYPE = 'data-type',
-    TOOLTIP_SMOOTHING = 'data-tooltip-smoothing'
+    TOOLTIP_SMOOTHING = 'data-tooltip-smoothing',
+    CUT_NULL = 'data-cut-null'
 }
 
 export type TooltipState = {

@@ -1,5 +1,5 @@
 import { CHART_TYPE, TINY_SPARK, POINT, XMLNS, DATA_ATTRIBUTE, ANIMATION_DURATION, TooltipState } from "../types"
-import { animateAreaProgressively, animatePath, createSmoothPath, createStraightPath, SVG } from "./svg";
+import { animateAreaProgressively, animatePath, createIndividualAreaWithCuts, createSmoothAreaSegments, createSmoothPath, createSmoothPathWithCuts, createStraightPath, createStraightPathWithCuts, SVG } from "./svg";
 
 export function getCharts() {
   const charts = document.querySelectorAll('.tiny-spark')
@@ -41,8 +41,12 @@ export function createUid() {
 export function parseDataset(chart: TINY_SPARK) {
   const dataSetStr = chart.getAttribute('data-set');
   if (!dataSetStr) return [];
+  const str = dataSetStr
+    .replace(/,(?=,)/g, ',null')
+    .replace(/\[,/g, '[null,')
+    .replace(/,\]/g, ',null]');
   try {
-    const parsed = JSON.parse(dataSetStr);
+    const parsed = JSON.parse(str);
     if (Array.isArray(parsed) && parsed.every(item => typeof item === 'number' || [null, undefined].includes(item))) {
       return parsed;
     }
@@ -277,22 +281,35 @@ export function createChart(chart: TINY_SPARK, firstTime: boolean) {
         w: slot
       }
     }
-  })
+  });
 
-  const points = [...allPoints].filter(({ v }) => ![null, undefined].includes(v));
+  function makePathArea(): SVGPathElement {
+    const _pathArea = document.createElementNS(XMLNS, 'path');
+    _pathArea.classList.add('tiny-spark-line-area');
+    return _pathArea;
+  }
+
+  const points = [...allPoints].map((p) => [null, undefined, Infinity, -Infinity, NaN, 'NaN'].includes(p.v) ? {...p, v: null } : p);
   const animation = chart.getAttribute('data-animation');
   const path = document.createElementNS(XMLNS, 'path');
   path.classList.add('tiny-spark-line-path');
-  const pathArea = document.createElementNS(XMLNS, 'path');
-  pathArea.classList.add('tiny-spark-line-area');
+  const pathArea = makePathArea();
+  const pathAreas: SVGPathElement[] = [];
 
   // PATH & AREA
   if (!isBar) {
-  
     if (!chart.dataset.curve || chart.dataset.curve === 'true') {
-      path.setAttribute('d', `M ${createSmoothPath(points)}`);
+      if (!chart.dataset.cutNull || chart.dataset.cutNull === 'false') {
+        path.setAttribute('d', `M ${createSmoothPath(points)}`);
+      } else {
+        path.setAttribute('d', `M ${createSmoothPathWithCuts(points)}`);
+      }
     } else {
-      path.setAttribute('d', `M ${createStraightPath(points)}`);
+      if (!chart.dataset.cutNull || chart.dataset.cutNull === 'false') {
+        path.setAttribute('d', `M ${createStraightPath(points)}`);
+      } else {
+        path.setAttribute('d', `M ${createStraightPathWithCuts(points)}`);
+      }
     }
   
     path.setAttribute('fill', 'none');
@@ -305,18 +322,46 @@ export function createChart(chart: TINY_SPARK, firstTime: boolean) {
       pathArea.style.opacity = '0'
     }
   
+    // AREAS
     if (allPoints.length) {
       if (!chart.dataset.curve || chart.dataset.curve === 'true') {
-        pathArea.setAttribute('d', `M ${points[0].x},${area.bottom} ${createSmoothPath(points)} L ${points.at(-1)!.x},${area.bottom} Z`);
+        if (!chart.dataset.cutNull || chart.dataset.cutNull === 'false') {
+          pathArea.setAttribute('d', `M ${points[0].x},${area.bottom} ${createSmoothPath(points)} L ${points.at(-1)!.x},${area.bottom} Z`);
+        } else {
+          const segments = createSmoothAreaSegments(points, area.bottom, true, true);
+          segments.forEach(seg => {
+            const pth = makePathArea()
+            pth.setAttribute('d', seg);
+            pth.setAttribute('fill', String(getDatasetValue(chart, DATA_ATTRIBUTE.AREA_COLOR, 'transparent')));
+            pathAreas.push(pth);
+          });
+        }
       } else {
-        pathArea.setAttribute('d', `M ${points[0].x},${area.bottom} ${createStraightPath(points)} L ${points.at(-1)!.x},${area.bottom} Z`);
+        if (!chart.dataset.cutNull || chart.dataset.cutNull === 'false') {
+          pathArea.setAttribute('d', `M ${points[0].x},${area.bottom} ${createStraightPath(points)} L ${points.at(-1)!.x},${area.bottom} Z`);
+        } else {
+          const segments = createIndividualAreaWithCuts(points, area.bottom).split(';');
+          segments.forEach(seg => {
+            const pth = makePathArea()
+            pth.setAttribute('d', `M ${seg} Z`);
+            pth.setAttribute('fill', String(getDatasetValue(chart, DATA_ATTRIBUTE.AREA_COLOR, 'transparent')));
+            pathAreas.push(pth);
+          });
+        }
       }
     }
-  
+    
+
     pathArea.setAttribute('fill', String(getDatasetValue(chart, DATA_ATTRIBUTE.AREA_COLOR, 'transparent')));
   
     if (allPoints.length > 1) {
-      svg.appendChild(pathArea);
+      if (pathAreas.length) {
+        pathAreas.forEach(p => {
+          svg.appendChild(p)
+        })
+      } else {
+        svg.appendChild(pathArea);
+      }
       svg.appendChild(path);
     }
   }

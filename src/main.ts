@@ -16,12 +16,14 @@ setTimeout(() => {
 function makeDs(n: number) {
   let arr = [];
   for(let i = 0; i < n; i += 1) {
-    arr.push(i % 2 === 0 ? Math.random() * 10 : Math.random() * -10);
+    if (i > 10 && i < 20) {
+      arr.push(null)
+    } else {
+      arr.push(i % 2 === 0 ? Math.random() * 10 : Math.random() * -10);
+    }
   }
   return arr.toString();
 }
-
-
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 <div style="width:100%">
@@ -29,10 +31,11 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   class="tiny-spark"
   data-type="line"
   data-curve="true"
+  data-cut-null="true"
   data-animation="true"
   data-line-color="#4A4A4A"
   data-area-color="#1A1A1A10"
-  data-line-thickness="3"
+  data-line-thickness="1"
   data-hide-plots-above="100"
   data-responsive
   data-plot-color="#2A2A2A"
@@ -41,7 +44,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   data-number-rounding="2"
   data-indicator-color="#1A1A1A"
   data-indicator-width="1"
-  data-set="[${makeDs(9)}]"
+  data-set="[${makeDs(100)}]"
   data-dates='["jan", "feb", "mar", "apr", "may", "jun"]'
   data-show-last-value="true"
   data-last-value-font-size="12"
@@ -66,7 +69,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   data-number-rounding="2"
   data-indicator-color="#1A1A1A"
   data-indicator-width="1"
-  data-set="[${makeDs(9)}]"
+  data-set="[${makeDs(100)}]"
   data-dates='["jan", "feb", "mar", "apr", "may", "jun"]'
   data-show-last-value="true"
   data-last-value-font-size="12"
