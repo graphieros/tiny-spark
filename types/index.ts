@@ -52,7 +52,11 @@ export enum DATA_ATTRIBUTE {
     LAST_VALUE_COLOR = 'lastValueColor',
     TYPE = 'type',
     TOOLTIP_SMOOTHING = 'tooltipSmoothing',
-    CUT_NULL = 'cutNull'
+    CUT_NULL = 'cutNull',
+    GRADIENT_FROM = 'gradientFrom',
+    GRADIENT_TO = 'gradientTo',
+    GRADIENT_FROM_OPACITY = 'gradientFromOpacity',
+    GRADIENT_TO_OPACITY = 'gradientToOpacity',
 }
 
 export enum ELEMENT_DATASET {
@@ -77,7 +81,11 @@ export enum ELEMENT_DATASET {
     LAST_VALUE_COLOR = 'data-last-value-color',
     TYPE = 'data-type',
     TOOLTIP_SMOOTHING = 'data-tooltip-smoothing',
-    CUT_NULL = 'data-cut-null'
+    CUT_NULL = 'data-cut-null',
+    GRADIENT_FROM = 'data-gradient-from',
+    GRADIENT_TO = 'data-gradient-to',
+    GRADIENT_FROM_OPACITY = 'data-gradient-from-opacity',
+    GRADIENT_TO_OPACITY = 'data-gradient-to-opacity',
 }
 
 export type TooltipState = {

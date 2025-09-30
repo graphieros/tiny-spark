@@ -39,8 +39,7 @@ export function render() {
                 }
             });
             mutationObserver.observe(spark, { attributes: true });
-        })
-
+        });
     });
 }
 

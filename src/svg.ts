@@ -11,7 +11,7 @@ export function SVG(chart: TINY_SPARK) {
     const lastValue = dataset && dataset.length ? dataset.at(-1) : null;
     let offsetX = 0;
 
-    const isBar = chart.dataset.type && chart.dataset.type === 'bar'
+    const isBar = chart.dataset.type && chart.dataset.type === 'bar';
 
     if (!isBar && showLastValue && ![null, undefined].includes(lastValue)) {
         const rounding = Number(String(getDatasetValue(chart, DATA_ATTRIBUTE.NUMBER_ROUNDING, 0)));
@@ -44,18 +44,18 @@ export function SVG(chart: TINY_SPARK) {
 
 export function checkNaN(val: number, fallback = 0) {
     if (isNaN(val)) {
-        return fallback
+        return fallback;
     } else {
-        return val
+        return val;
     }
 }
 
 export function createStraightPath(points: POINT[]) {
     let arr = [];
     for (let i = 0; i < points.length; i += 1) {
-        arr.push(`${checkNaN(points[i].x)},${checkNaN(points[i].y)} `)
+        arr.push(`${checkNaN(points[i].x)},${checkNaN(points[i].y)} `);
     }
-    return arr.join(' ').trim()
+    return arr.join(' ').trim();
 }
 
 export function createSmoothPath(points: POINT[]) {

@@ -97,12 +97,14 @@ export function localeNum(chart: TINY_SPARK, num: number) {
 
 export function domPlot(svg: SVGSVGElement, svgX: number, svgY: number) {
   if (!svg.createSVGPoint || !svg.getScreenCTM) {
-    throw new Error("Your browser does not support SVG coordinate transformation.");
+    console.error("Your browser does not support SVG coordinate transformation.");
+    return { x: 0, y: 0 };
   }
-
+  
   const screenCTM = svg.getScreenCTM();
   if (!screenCTM) {
-    throw new Error("Cannot obtain the screen CTM.");
+    console.error("Cannot obtain the screen CTM.");
+    return { x: 0, y: 0 };
   }
 
   const point = svg.createSVGPoint();
@@ -210,6 +212,33 @@ export function tooltip(
   if (state.frameId == null) animate();
 }
 
+function makeGradient({ id, colorStart, colorEnd, opacityStart, opacityEnd }: {
+  id: string,
+  colorStart: string,
+  colorEnd: string;
+  opacityStart: number;
+  opacityEnd: number;
+}) {
+  const linearGradient = document.createElementNS(XMLNS, 'linearGradient');
+    linearGradient.setAttribute('id', id);
+    linearGradient.setAttribute('x1', '0');
+    linearGradient.setAttribute('x2', '0');
+    linearGradient.setAttribute('y1', '0');
+    linearGradient.setAttribute('y2', '1');
+    const stopStart = document.createElementNS(XMLNS, 'stop');
+    stopStart.setAttribute('offset', '0%');
+    stopStart.setAttribute('stop-color', colorStart);
+    stopStart.setAttribute('stop-opacity', String(opacityStart));
+    const stopEnd = document.createElementNS(XMLNS, 'stop');
+    stopEnd.setAttribute('offset', '100%');
+    stopEnd.setAttribute('stop-color', colorEnd);
+    stopEnd.setAttribute('stop-opacity', String(opacityEnd));
+    [stopStart, stopEnd].forEach(stop => {
+      linearGradient.appendChild(stop);
+    });
+    return linearGradient;
+}
+
 /////////////////////////////////////////////////////
 
 function clear(chart: TINY_SPARK) {
@@ -289,12 +318,46 @@ export function createChart(chart: TINY_SPARK, firstTime: boolean) {
     return _pathArea;
   }
 
+  function createAreaGradient(id: string): SVGDefsElement {
+    const defs = document.createElementNS(XMLNS, 'defs');
+    defs.appendChild(makeGradient({
+      id,
+      colorStart: String(getDatasetValue(chart, DATA_ATTRIBUTE.GRADIENT_FROM, '#FFFFFF')),
+      colorEnd: String(getDatasetValue(chart, DATA_ATTRIBUTE.GRADIENT_TO, '#FFFFFF')),
+      opacityStart: Math.max(0, Math.min(1, Number(getDatasetValue(chart, DATA_ATTRIBUTE.GRADIENT_FROM_OPACITY, 1)))),
+      opacityEnd: Math.max(0, Math.min(1, Number(getDatasetValue(chart, DATA_ATTRIBUTE.GRADIENT_TO_OPACITY, 1))))
+    }));
+    return defs;
+  }
+
+  function createBarGradients(id: string): SVGDefsElement {
+    const defs = document.createElementNS(XMLNS, 'defs');
+    defs.appendChild(makeGradient({
+      id: `pos_${id}`,
+      colorStart: String(getDatasetValue(chart, DATA_ATTRIBUTE.GRADIENT_FROM, '#FFFFFF')),
+      colorEnd: String(getDatasetValue(chart, DATA_ATTRIBUTE.GRADIENT_TO, '#FFFFFF')),
+      opacityStart: Math.max(0, Math.min(1, Number(getDatasetValue(chart, DATA_ATTRIBUTE.GRADIENT_FROM_OPACITY, 1)))),
+      opacityEnd: Math.max(0, Math.min(1, Number(getDatasetValue(chart, DATA_ATTRIBUTE.GRADIENT_TO_OPACITY, 1))))
+    }));
+    defs.appendChild(makeGradient({
+      id: `neg_${id}`,
+      colorStart: String(getDatasetValue(chart, DATA_ATTRIBUTE.GRADIENT_TO, '#FFFFFF')),
+      colorEnd: String(getDatasetValue(chart, DATA_ATTRIBUTE.GRADIENT_FROM, '#FFFFFF')),
+      opacityStart: Math.max(0, Math.min(1, Number(getDatasetValue(chart, DATA_ATTRIBUTE.GRADIENT_TO_OPACITY, 1)))),
+      opacityEnd: Math.max(0, Math.min(1, Number(getDatasetValue(chart, DATA_ATTRIBUTE.GRADIENT_FROM_OPACITY, 1)))),
+    }));
+    return defs;
+  }
+
   const points = [...allPoints].map((p) => [null, undefined, Infinity, -Infinity, NaN, 'NaN'].includes(p.v) ? {...p, v: null } : p);
   const animation = chart.getAttribute('data-animation');
   const path = document.createElementNS(XMLNS, 'path');
   path.classList.add('tiny-spark-line-path');
   const pathArea = makePathArea();
   const pathAreas: SVGPathElement[] = [];
+
+  const hasGradient = !!getDatasetValue(chart, DATA_ATTRIBUTE.GRADIENT_FROM, '') && !!getDatasetValue(chart, DATA_ATTRIBUTE.GRADIENT_TO, '');
+  const gradientId = createUid();
 
   // PATH & AREA
   if (!isBar) {
@@ -321,6 +384,10 @@ export function createChart(chart: TINY_SPARK, firstTime: boolean) {
       path.style.opacity = '0'
       pathArea.style.opacity = '0'
     }
+
+    if (hasGradient) {
+      svg.appendChild(createAreaGradient(gradientId));
+    }
   
     // AREAS
     if (allPoints.length) {
@@ -332,7 +399,11 @@ export function createChart(chart: TINY_SPARK, firstTime: boolean) {
           segments.forEach(seg => {
             const pth = makePathArea()
             pth.setAttribute('d', seg);
-            pth.setAttribute('fill', String(getDatasetValue(chart, DATA_ATTRIBUTE.AREA_COLOR, 'transparent')));
+            if (hasGradient) {
+              pth.setAttribute('fill', `url(#${gradientId})`);
+            } else {
+              pth.setAttribute('fill', String(getDatasetValue(chart, DATA_ATTRIBUTE.AREA_COLOR, 'transparent')));
+            }
             pathAreas.push(pth);
           });
         }
@@ -344,15 +415,22 @@ export function createChart(chart: TINY_SPARK, firstTime: boolean) {
           segments.forEach(seg => {
             const pth = makePathArea()
             pth.setAttribute('d', `M ${seg} Z`);
-            pth.setAttribute('fill', String(getDatasetValue(chart, DATA_ATTRIBUTE.AREA_COLOR, 'transparent')));
+            if (hasGradient) {
+              pth.setAttribute('fill', `url(#${gradientId})`);
+            } else {
+              pth.setAttribute('fill', String(getDatasetValue(chart, DATA_ATTRIBUTE.AREA_COLOR, 'transparent')));
+            }
             pathAreas.push(pth);
           });
         }
       }
     }
     
-
-    pathArea.setAttribute('fill', String(getDatasetValue(chart, DATA_ATTRIBUTE.AREA_COLOR, 'transparent')));
+    if (hasGradient) {
+      pathArea.setAttribute('fill', `url(#${gradientId})`);
+    } else {
+      pathArea.setAttribute('fill', String(getDatasetValue(chart, DATA_ATTRIBUTE.AREA_COLOR, 'transparent')));
+    }
   
     if (allPoints.length > 1) {
       if (pathAreas.length) {
@@ -394,8 +472,13 @@ export function createChart(chart: TINY_SPARK, firstTime: boolean) {
   const isInPlotViewRange = !String(getDatasetValue(chart, DATA_ATTRIBUTE.HIDE_PLOTS_ABOVE, '')) || allPoints.length <= (Number(String(getDatasetValue(chart, DATA_ATTRIBUTE.HIDE_PLOTS_ABOVE, 0))));
   const canShowPlots = hasPlotRadius && isInPlotViewRange;
 
+  const plotGroup = document.createElementNS(XMLNS, 'g');
+
   // BARS
   if (isBar) {
+    if (hasGradient) {
+      svg.appendChild(createBarGradients(gradientId));
+    }
     allPoints.forEach(({ bar, v }, i) => {
       if (![null, undefined].includes(v)) {
         const rect = document.createElementNS(XMLNS, 'rect');
@@ -404,13 +487,22 @@ export function createChart(chart: TINY_SPARK, firstTime: boolean) {
         rect.setAttribute('y', String(bar.y));
         rect.setAttribute('width', String(bar.w));
         rect.setAttribute('height', String(bar.h));
-        rect.setAttribute('fill', String(getDatasetValue(chart, DATA_ATTRIBUTE.PLOT_COLOR, String(getDatasetValue(chart, 'lineColor', color)))))
+        if (hasGradient) {
+          if (v >= 0) {
+            rect.setAttribute('fill', `url(#pos_${gradientId})`)
+          } else {
+            rect.setAttribute('fill', `url(#neg_${gradientId})`)
+          }
+        } else {
+          rect.setAttribute('fill', String(getDatasetValue(chart, DATA_ATTRIBUTE.PLOT_COLOR, String(getDatasetValue(chart, 'lineColor', color)))))
+        }
         rect.style.opacity = allPoints.length === 1 ? '1' : '0';
         rect.style.transition = `opacity ${i * ((ANIMATION_DURATION * 2) / allPoints.length)}ms ease-in`;
         bars.push(rect);
-        svg.appendChild(rect)
+        plotGroup.appendChild(rect);
       }
-    })
+    });
+    svg.appendChild(plotGroup);
   }
 
   if (hasPlotRadius && !isBar) {
@@ -430,10 +522,11 @@ export function createChart(chart: TINY_SPARK, firstTime: boolean) {
           circle.style.pointerEvents = 'none';
           plots.push(circle);
           if (canShowPlots) {
-            svg.appendChild(circle);
+            plotGroup.appendChild(circle);
           }
         }
       });
+      svg.appendChild(plotGroup);
   }
 
   // LAST VALUE
@@ -462,6 +555,8 @@ export function createChart(chart: TINY_SPARK, firstTime: boolean) {
     lastValueText.style.opacity = allPoints.length === 1 ? '1' : '0';
     svg.appendChild(lastValueText);
   }
+
+  const trapGroup = document.createElementNS(XMLNS, 'g');
 
   // TOOLTIP TRAPS
   allPoints.forEach((point, i) => {
@@ -504,9 +599,11 @@ export function createChart(chart: TINY_SPARK, firstTime: boolean) {
         lastValueText.style.opacity = '1';
       }
     });
-    svg.appendChild(trap);
+
+    trapGroup.appendChild(trap);
   });
 
+  svg.appendChild(trapGroup);
 
   if (animation === 'true' && animate) {
     nextTick().then(() => {
