@@ -57,6 +57,7 @@ export enum DATA_ATTRIBUTE {
     GRADIENT_TO = 'gradientTo',
     GRADIENT_FROM_OPACITY = 'gradientFromOpacity',
     GRADIENT_TO_OPACITY = 'gradientToOpacity',
+    TEMPERATURE_COLORS = 'temperatureColors'
 }
 
 export enum ELEMENT_DATASET {
@@ -86,6 +87,7 @@ export enum ELEMENT_DATASET {
     GRADIENT_TO = 'data-gradient-to',
     GRADIENT_FROM_OPACITY = 'data-gradient-from-opacity',
     GRADIENT_TO_OPACITY = 'data-gradient-to-opacity',
+    TEMPERATURE_COLORS = 'data-temperature-colors'
 }
 
 export type TooltipState = {

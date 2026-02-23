@@ -33,13 +33,13 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   data-curve="true"
   data-cut-null="true"
   data-animation="true"
-  data-gradient-from="#FF0000"
-  data-gradient-to="#FFAA00"
+  data-gradient-from="#CCCCCC"
+  data-gradient-to="#CCCCCC00"
   data-gradient-from-opacity="1"
   data-gradient-to-opacity="1"
   data-line-color="#4A4A4A"
   data-area-color="#1A1A1A10"
-  data-line-thickness="1"
+  data-line-thickness="2"
   data-hide-plots-above="100"
   data-responsive
   data-plot-color="#2A2A2A"
@@ -54,6 +54,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   data-last-value-font-size="12"
   data-last-value-color="red"
   data-tooltip-smoothing="1"
+  data-temperature-colors="['#00FF00', '#FF0000']"
 ></div>
 </div>
 <div style="width:100%">

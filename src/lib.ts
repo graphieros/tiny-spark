@@ -1,4 +1,4 @@
-import { CHART_TYPE, TINY_SPARK, POINT, XMLNS, DATA_ATTRIBUTE, ANIMATION_DURATION, TooltipState } from "../types"
+import { CHART_TYPE, TINY_SPARK, POINT, XMLNS, DATA_ATTRIBUTE, ANIMATION_DURATION, TooltipState, ELEMENT_DATASET } from "../types"
 import { animateAreaProgressively, animatePath, createIndividualAreaWithCuts, createSmoothAreaSegments, createSmoothPath, createSmoothPathWithCuts, createStraightPath, createStraightPathWithCuts, SVG } from "./svg";
 
 export function getCharts() {
@@ -39,7 +39,7 @@ export function createUid() {
 }
 
 export function parseDataset(chart: TINY_SPARK) {
-  const dataSetStr = chart.getAttribute('data-set');
+  const dataSetStr = chart.getAttribute(ELEMENT_DATASET.SET);
   if (!dataSetStr) return [];
   const str = dataSetStr
     .replace(/,(?=,)/g, ',null')
@@ -58,11 +58,16 @@ export function parseDataset(chart: TINY_SPARK) {
   }
 }
 
+export function setGradientOffset(i: number, n: number): string {
+    if (n <= 1) return '0%';
+    return `${(i * 100) / (n - 1)}%`;
+}
+
 function getDates(chart: TINY_SPARK) {
-  const dates = chart.getAttribute('data-dates');
+  const dates = chart.getAttribute(ELEMENT_DATASET.DATES);
   if (!dates) return []
   try {
-    const parsed = JSON.parse(dates);
+    const parsed = JSON.parse(dates.replaceAll(`'`, '"'));
     if (Array.isArray(parsed) && parsed.every(item => typeof item === 'string')) {
       return parsed;
     }
@@ -70,6 +75,22 @@ function getDates(chart: TINY_SPARK) {
     return [];
   } catch (error) {
     console.error('Error parsing data-dates', error);
+    return [];
+  }
+}
+
+function getTemperatureColors(chart: TINY_SPARK) {
+  const colors = chart.getAttribute(ELEMENT_DATASET.TEMPERATURE_COLORS);
+  if (!colors) return [];
+  try {
+    const parsed = JSON.parse(colors.replaceAll(`'`, '"'));
+    if (Array.isArray(parsed) && parsed.every(item => typeof item === 'string')) {
+      return parsed;
+    }
+    console.warn('data-temperature-colors is not an array of strings');
+    return [];
+  } catch (error) {
+    console.error('Error parsing data-temperature-colors', error);
     return [];
   }
 }
@@ -376,7 +397,28 @@ export function createChart(chart: TINY_SPARK, firstTime: boolean) {
     }
   
     path.setAttribute('fill', 'none');
-    path.setAttribute('stroke', String(getDatasetValue(chart, DATA_ATTRIBUTE.LINE_COLOR, color)));
+
+    const temperatureColors = getTemperatureColors(chart);
+
+    if (temperatureColors.length) {
+      const temperatureId = createUid();
+      const temperatureDefs = document.createElementNS(XMLNS, 'defs');
+      const temperatureLinearGradient = document.createElementNS(XMLNS, 'linearGradient');
+      temperatureLinearGradient.setAttribute('gradientTransform', 'rotate(90)');
+      temperatureLinearGradient.setAttribute('id', temperatureId);
+      temperatureColors.forEach((c, ci) => {
+        const stop = document.createElementNS(XMLNS, 'stop');
+        stop.setAttribute('offset', setGradientOffset(ci, temperatureColors.length));
+        stop.setAttribute('stop-color', c);
+        temperatureLinearGradient.appendChild(stop);
+      });
+      temperatureDefs.appendChild(temperatureLinearGradient);
+      svg.prepend(temperatureDefs);
+      path.setAttribute('stroke', `url(#${temperatureId})`);
+    } else {
+      path.setAttribute('stroke', String(getDatasetValue(chart, DATA_ATTRIBUTE.LINE_COLOR, color)));
+    }
+
     path.setAttribute('stroke-width', String(getDatasetValue(chart, DATA_ATTRIBUTE.LINE_THICKNESS, 2)));
     path.setAttribute('stroke-linecap', 'round');
     
