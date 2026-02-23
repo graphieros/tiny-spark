@@ -53,6 +53,7 @@ Render a line chart:
     data-area-color="#1A1A1A10"
     data-gradient-from="#FF0000"
     data-gradient-to="#FFAA00"
+    data-temperature-colors="['#00FF00', '#FF0000']"
     data-gradient-from-opacity="1"
     data-gradient-to-opacity="1"
     data-line-thickness="4"
