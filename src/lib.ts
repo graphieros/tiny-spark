@@ -262,6 +262,17 @@ function makeGradient({ id, colorStart, colorEnd, opacityStart, opacityEnd }: {
 
 /////////////////////////////////////////////////////
 
+function hasAllSameValues(array: number[]) {
+  if (array.length <= 1) return true;
+  const firstValue = array[0];
+  for (let index = 1; index < array.length; index += 1) {
+    if (array[index] !== firstValue) {
+      return false;
+    }
+  }
+  return true;
+}
+
 function clear(chart: TINY_SPARK) {
   chart.innerHTML = ''
 }
@@ -400,7 +411,7 @@ export function createChart(chart: TINY_SPARK, firstTime: boolean) {
 
     const temperatureColors = getTemperatureColors(chart);
 
-    if (temperatureColors.length) {
+    if (temperatureColors.length && !hasAllSameValues(points.map(p => p.y))) {
       const temperatureId = createUid();
       const temperatureDefs = document.createElementNS(XMLNS, 'defs');
       const temperatureLinearGradient = document.createElementNS(XMLNS, 'linearGradient');
