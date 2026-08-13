@@ -5,8 +5,8 @@
   "type": "module",
   "description": "An elegant, reactive and responsive sparkline chart solution without dependency.",
   "author": "Alec Lloyd Probert",
-  "main": "dist/tiny-spark.umd.js",
-  "module": "dist/tiny-spark.es.js",
+  "main": "./dist/tiny-spark.es.js",
+  "exports": "./dist/tiny-spark.es.js",
   "keywords": [
     "sparkline",
     "chart",
