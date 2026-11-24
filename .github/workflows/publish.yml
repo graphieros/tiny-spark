@@ -32,4 +32,4 @@ jobs:
       - name: Publish
         run: |
           TAG=$(node -p "const version = require('./package.json').version; const prerelease = version.match(/-(.+?)(\.|$)/); prerelease ? prerelease[1] : 'latest'")
-          pnpm publish --no-git-checks --tag "$TAG"
+          npm publish --tag "$TAG"
