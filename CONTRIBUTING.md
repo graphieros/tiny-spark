@@ -18,11 +18,10 @@ We'd also love PRs. If you're thinking of a large PR, we advise opening up an is
 ## Submitting a pull request
 
 1. [Fork][fork] and clone the repository.
-1. Configure and install the dependencies: `npm install`.
-1. Run development: `npm run dev`. This step will install a temporary local vue-data-ui package and launch the testing arena.
-1. Make sure the tests pass on your machine: `npm run test`.
+1. Install the dependencies with `pnpm install`.
+1. Start the development server with `pnpm run dev`.
 1. Create a new branch: `git checkout -b my-branch-name`.
-1. Make your change, add tests, and make sure the tests still pass by running `npm run build`.
+1. Make your change and run `pnpm run build` to type-check and build the package.
 1. Push to your fork and [submit a pull request][pr].
 1. Pat your self on the back and wait for your pull request to be reviewed and merged.
 

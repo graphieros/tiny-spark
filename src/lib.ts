@@ -1,9 +1,12 @@
-import { CHART_TYPE, TINY_SPARK, POINT, XMLNS, DATA_ATTRIBUTE, ANIMATION_DURATION, TooltipState, ELEMENT_DATASET } from "../types"
+import { TINY_SPARK, POINT, XMLNS, ANIMATION_DURATION, TooltipState } from "../types"
 import { animateAreaProgressively, animatePath, createIndividualAreaWithCuts, createSmoothAreaSegments, createSmoothPath, createSmoothPathWithCuts, createStraightPath, createStraightPathWithCuts, SVG } from "./svg";
 
-export function getCharts() {
-  const charts = document.querySelectorAll('.tiny-spark')
-  return charts
+export function getCharts(root: ParentNode) {
+  const charts = Array.from(root.querySelectorAll<TINY_SPARK>('.tiny-spark'));
+  if (root.nodeType === 1 && (root as Element).matches('.tiny-spark')) {
+    charts.unshift(root as TINY_SPARK);
+  }
+  return charts;
 }
 
 export function hasDataset(element: TINY_SPARK, name: string) {
@@ -39,7 +42,7 @@ export function createUid() {
 }
 
 export function parseDataset(chart: TINY_SPARK) {
-  const dataSetStr = chart.getAttribute(ELEMENT_DATASET.SET);
+  const dataSetStr = chart.getAttribute('data-set');
   if (!dataSetStr) return [];
   const str = dataSetStr
     .replace(/,(?=,)/g, ',null')
@@ -64,14 +67,19 @@ export function setGradientOffset(i: number, n: number): string {
 }
 
 function getDates(chart: TINY_SPARK) {
-  const dates = chart.getAttribute(ELEMENT_DATASET.DATES);
+  const dates = chart.getAttribute('data-dates');
   if (!dates) return []
   try {
-    const parsed = JSON.parse(dates.replaceAll(`'`, '"'));
-    if (Array.isArray(parsed) && parsed.every(item => typeof item === 'string')) {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(dates);
+    } catch {
+      parsed = JSON.parse(dates.replaceAll(`'`, '"'));
+    }
+    if (Array.isArray(parsed) && parsed.every(item => item === null || typeof item === 'string')) {
       return parsed;
     }
-    console.warn('data-dates is not an array of strings');
+    console.warn('data-dates is not an array of strings or nulls');
     return [];
   } catch (error) {
     console.error('Error parsing data-dates', error);
@@ -80,7 +88,7 @@ function getDates(chart: TINY_SPARK) {
 }
 
 function getTemperatureColors(chart: TINY_SPARK) {
-  const colors = chart.getAttribute(ELEMENT_DATASET.TEMPERATURE_COLORS);
+  const colors = chart.getAttribute('data-temperature-colors');
   if (!colors) return [];
   try {
     const parsed = JSON.parse(colors.replaceAll(`'`, '"'));
@@ -107,13 +115,24 @@ export function nextTick() {
 }
 
 export function localeNum(chart: TINY_SPARK, num: number) {
-  const locale = String(getDatasetValue(chart, DATA_ATTRIBUTE.NUMBER_LOCALE, navigator.language || 'en-US'));
-  const rounding = Number(String(getDatasetValue(chart, DATA_ATTRIBUTE.NUMBER_ROUNDING, 0)));
-  return num.toLocaleString(locale, {
+  const locale = String(getDatasetValue(chart, 'numberLocale', navigator.language || 'en-US'));
+  const rounding = Number(String(getDatasetValue(chart, 'numberRounding', 0)));
+  const options = {
     useGrouping: true,
     minimumFractionDigits: rounding,
     maximumFractionDigits: rounding
-  });
+  };
+  const { numberStyle, numberCurrency, numberUnit } = chart.dataset;
+  if (numberStyle === 'currency' || numberStyle === 'percent' || numberStyle === 'unit') {
+    try {
+      return num.toLocaleString(locale, {
+        ...options, style: numberStyle, currency: numberCurrency, unit: numberUnit
+      });
+    } catch {
+      // Invalid currencies or units fall back to decimal formatting.
+    }
+  }
+  return num.toLocaleString(locale, options);
 }
 
 export function domPlot(svg: SVGSVGElement, svgX: number, svgY: number) {
@@ -137,74 +156,71 @@ export function domPlot(svg: SVGSVGElement, svgX: number, svgY: number) {
   return { x: domPoint.x, y: domPoint.y };
 }
 
-const tooltipStates: Record<string, TooltipState> = {}
+const tooltipStates = new WeakMap<TINY_SPARK, TooltipState>();
 
-export function tooltip(
+function hideTooltip(state: TooltipState) {
+  if (state.frameId !== null) cancelAnimationFrame(state.frameId);
+  state.frameId = null;
+  state.tool.style.opacity = '0';
+  state.tool.setAttribute('aria-hidden', 'true');
+}
+
+function showTooltip(
   svg: SVGSVGElement,
   chart: TINY_SPARK,
   point: POINT,
-  id: string,
-  show: boolean
+  id: string
 ) {
-  let state = tooltipStates[id];
+  let tooltipState = tooltipStates.get(chart);
 
-  if (!show) {
-    if (state) {
-      cancelAnimationFrame(state.frameId!);
-      state.frameId = null;
-      state.tool.style.opacity = '0';
-    }
-    return
-  }
-
-  const isBar = chart.dataset.type === CHART_TYPE.BAR;
+  const isBar = chart.dataset.type === 'bar';
   const { x, y } = domPlot(
     svg,
     point.x,
     isBar && !point.isPositive ? point.bar.y : point.y
   );
 
-  if (!state) {
+  if (!tooltipState) {
     const tool = document.createElement('div');
     tool.classList.add('tiny-spark-tooltip');
-    tool.setAttribute('id', `tooltip_${id}`);
     tool.setAttribute('role', 'tooltip');
     tool.setAttribute('aria-live', 'polite');
     tool.style.position = 'fixed';
     tool.style.pointerEvents = 'none';
     tool.style.opacity = '0';
     tool.style.willChange = 'top, left';
-    document.body.appendChild(tool);
+    const content = document.createElement('div');
+    content.classList.add('tiny-spark-tooltip-content');
+    tool.appendChild(content);
+    chart.ownerDocument.body.appendChild(tool);
 
-    state = tooltipStates[id] = {
+    const newState: TooltipState = {
       targetX: 0,
       targetY: 0,
       displayX: 0,
       displayY: 0,
       frameId: null,
       tool,
+      content,
       width: 0,
       height: 0,
       hasSnapped: false
-    }
+    };
+    tooltipStates.set(chart, newState);
+    tooltipState = newState;
   }
 
+  const state = tooltipState;
+  state.tool.id = `tooltip_${id}`;
   state.tool.setAttribute('aria-hidden', 'false');
-  state.tool.innerHTML = `
-    <div class="tiny-spark-tooltip-content">
-      ${point.d ? `${point.d}: ` : ''}${
-    [null, undefined].includes(point.v as any)
-      ? '-'
-      : localeNum(chart, Number(point.v))
-  }
-    </div>
-  `;
+  const value = point.v == null ? '-' : localeNum(chart, Number(point.v));
+  state.content.textContent = point.d ? `${point.d}: ${value}` : value;
 
   const { width: w, height: h } = state.tool.getBoundingClientRect();
   state.width  = w;
   state.height = h;
 
-  const radius = Number(getDatasetValue(chart, DATA_ATTRIBUTE.PLOT_RADIUS, 3));
+  const radius = Number(getDatasetValue(chart, 'plotRadius', 3));
   state.targetX = x - state.width  / 2;
   state.targetY = y - state.height - radius * 1.5;
 
@@ -218,17 +234,24 @@ export function tooltip(
     return;
   }
 
-  const SMOOTHING = Number(getDatasetValue(chart, DATA_ATTRIBUTE.TOOLTIP_SMOOTHING, 1)) / 10;
+  const smoothing = Math.min(1, Math.max(0, Number(getDatasetValue(chart, 'tooltipSmoothing', 1)) / 10)) || 1;
 
   function animate() {
-    state.displayX += (state.targetX - state.displayX) * SMOOTHING;
-    state.displayY += (state.targetY - state.displayY) * SMOOTHING;
+    state.displayX += (state.targetX - state.displayX) * smoothing;
+    state.displayY += (state.targetY - state.displayY) * smoothing;
 
-    state.tool.style.left   = `${Math.round(state.displayX)}px`;
-    state.tool.style.top    = `${Math.round(state.displayY)}px`;
+    const settled = Math.abs(state.targetX - state.displayX) <= 0.5
+      && Math.abs(state.targetY - state.displayY) <= 0.5;
+    if (settled) {
+      state.displayX = state.targetX;
+      state.displayY = state.targetY;
+    }
+
+    state.tool.style.left   = `${state.displayX}px`;
+    state.tool.style.top    = `${state.displayY}px`;
     state.tool.style.opacity = '1';
 
-    state.frameId = requestAnimationFrame(animate);
+    state.frameId = settled ? null : requestAnimationFrame(animate);
   }
   if (state.frameId == null) animate();
 }
@@ -273,21 +296,83 @@ function hasAllSameValues(array: number[]) {
   return true;
 }
 
-function clear(chart: TINY_SPARK) {
-  chart.innerHTML = ''
+const chartViews = new WeakMap<TINY_SPARK, {
+  svg: SVGSVGElement;
+  events: AbortController;
+  ownsTabIndex: boolean;
+  selection?: { index: number; source: 'mouse' | 'keyboard' | 'touch' };
+}>();
+
+export function destroyChart(chart: TINY_SPARK) {
+  const view = chartViews.get(chart);
+  view?.events.abort();
+  view?.svg.remove();
+  if (view?.ownsTabIndex && chart.getAttribute('tabindex') === '0') {
+    chart.removeAttribute('tabindex');
+  }
+  chartViews.delete(chart);
+
+  const state = tooltipStates.get(chart);
+  if (state) {
+    hideTooltip(state);
+    state.tool.remove();
+    tooltipStates.delete(chart);
+  }
+}
+
+function getFixedScale(chart: TINY_SPARK, dataset: number[]) {
+  const lower = Number(chart.dataset.yMin?.trim() || NaN);
+  const upper = Number(chart.dataset.yMax?.trim() || NaN);
+  const hasLower = Number.isFinite(lower);
+  const hasUpper = Number.isFinite(upper);
+  if (!hasLower && !hasUpper) return;
+
+  let autoMin = 0;
+  let autoMax = 0;
+  for (const value of dataset) {
+    if (!Number.isFinite(value)) continue;
+    autoMin = Math.min(autoMin, value);
+    autoMax = Math.max(autoMax, value);
+  }
+  return scaleBetween(hasLower ? lower : autoMin, hasUpper ? upper : autoMax);
+}
+
+function scaleBetween(min: number, max: number) {
+  const range = max - min;
+  if (!(range > 0)) return;
+
+  return (value: number) => {
+    const clamped = Math.min(max, Math.max(min, value || 0));
+    return Number.isFinite(range)
+      ? (max - clamped) / range
+      : (max / 2 - clamped / 2) / (max / 2 - min / 2);
+  };
 }
 
 export function createChart(chart: TINY_SPARK, firstTime: boolean) {
   const isBar = chart.dataset.type && chart.dataset.type === 'bar';
 
   let animate = firstTime;
-  clear(chart);
-  const { svg, svgId, width, height, viewBox } = SVG(chart);
+  const previous = chartViews.get(chart);
+  previous?.events.abort();
+  const activeTooltip = tooltipStates.get(chart);
+  if (activeTooltip) {
+    hideTooltip(activeTooltip);
+    activeTooltip.hasSnapped = false;
+  }
+  chart.replaceChildren();
+  const dataset = parseDataset(chart);
+  const { svg, svgId, width, height, viewBox } = SVG(chart, dataset.at(-1));
+  const events = new AbortController();
+  const view: NonNullable<typeof previous> = {
+    svg, events, ownsTabIndex: previous?.ownsTabIndex ?? false
+  };
+  chartViews.set(chart, view);
   const { color, backgroundColor } = getElementColors(chart);
 
   const padding = { T: 12, R: 12, B: 12, L: 12 };
   const lastValueId = createUid();
-  const showLastValue = String(getDatasetValue(chart, DATA_ATTRIBUTE.SHOW_LAST_VALUE, 'false')) === 'true';
+  const showLastValue = String(getDatasetValue(chart, 'showLastValue', 'false')) === 'true';
 
   // DRAWING AREA
   const area = {
@@ -299,12 +384,13 @@ export function createChart(chart: TINY_SPARK, firstTime: boolean) {
     right: width - padding.R
   };
 
-  const dataset = parseDataset(chart);
   const { min: MIN } = minMax(dataset);
   const positiveDataset = dataset.map(d => {
     return [null, undefined].includes(d) ? d : d + (MIN < 0 ? Math.abs(MIN) : 0)
   });
   const { max } = minMax(positiveDataset);
+  const scale = getFixedScale(chart, dataset)
+    ?? (max === 0 ? scaleBetween(Math.min(MIN, 0), MIN < 0 ? 0 : 1) : undefined);
   let slot = area.width / (dataset.length - 1) === Infinity ? area.width : area.width / (dataset.length - 1);
 
   if (isBar) {
@@ -324,21 +410,25 @@ export function createChart(chart: TINY_SPARK, firstTime: boolean) {
     }
 
     const x = area.left + ((slot * i)) + uniqueCase.w;
-    const y = ((1 - ((d || 0) / max)) * area.height) + uniqueCase.h + padding.T;
-    const y_0 = ((1 - ((MIN < 0 ? Math.abs(MIN) : 0) / max)) * area.height) + padding.T + uniqueCase.h;
+    const y = scale
+      ? area.top + scale(dataset[i]) * area.height
+      : ((1 - ((d || 0) / max)) * area.height) + uniqueCase.h + padding.T;
+    const y_0 = scale
+      ? area.top + scale(0) * area.height
+      : ((1 - ((MIN < 0 ? Math.abs(MIN) : 0) / max)) * area.height) + padding.T + uniqueCase.h;
 
     const isPositive = dataset[i] >= 0
 
     return {
-      y: allNeg && dataset.length === 1 ? area.top + area.height / 2 : y,
+      y: !scale && allNeg && dataset.length === 1 ? area.top + area.height / 2 : y,
       x,
       v: dataset[i],
       d: dates[i] || null,
       isPositive,
       bar: {
         x: x - slot / 2,
-        y: dataset.length === 1 ? area.top : isPositive ? y : allNeg ? area.top : y_0,
-        h: dataset.length === 1 ? area.height : isPositive ? y_0 - y : allNeg && dataset.length === 0 ? area.height : isNaN(y - y_0) ? 0 : y - y_0,
+        y: scale ? Math.min(y, y_0) : dataset.length === 1 ? area.top : isPositive ? y : allNeg ? area.top : y_0,
+        h: scale ? Math.abs(y - y_0) : dataset.length === 1 ? area.height : isPositive ? y_0 - y : allNeg && dataset.length === 0 ? area.height : isNaN(y - y_0) ? 0 : y - y_0,
         w: slot
       }
     }
@@ -354,10 +444,10 @@ export function createChart(chart: TINY_SPARK, firstTime: boolean) {
     const defs = document.createElementNS(XMLNS, 'defs');
     defs.appendChild(makeGradient({
       id,
-      colorStart: String(getDatasetValue(chart, DATA_ATTRIBUTE.GRADIENT_FROM, '#FFFFFF')),
-      colorEnd: String(getDatasetValue(chart, DATA_ATTRIBUTE.GRADIENT_TO, '#FFFFFF')),
-      opacityStart: Math.max(0, Math.min(1, Number(getDatasetValue(chart, DATA_ATTRIBUTE.GRADIENT_FROM_OPACITY, 1)))),
-      opacityEnd: Math.max(0, Math.min(1, Number(getDatasetValue(chart, DATA_ATTRIBUTE.GRADIENT_TO_OPACITY, 1))))
+      colorStart: String(getDatasetValue(chart, 'gradientFrom', '#FFFFFF')),
+      colorEnd: String(getDatasetValue(chart, 'gradientTo', '#FFFFFF')),
+      opacityStart: Math.max(0, Math.min(1, Number(getDatasetValue(chart, 'gradientFromOpacity', 1)))),
+      opacityEnd: Math.max(0, Math.min(1, Number(getDatasetValue(chart, 'gradientToOpacity', 1))))
     }));
     return defs;
   }
@@ -366,17 +456,17 @@ export function createChart(chart: TINY_SPARK, firstTime: boolean) {
     const defs = document.createElementNS(XMLNS, 'defs');
     defs.appendChild(makeGradient({
       id: `pos_${id}`,
-      colorStart: String(getDatasetValue(chart, DATA_ATTRIBUTE.GRADIENT_FROM, '#FFFFFF')),
-      colorEnd: String(getDatasetValue(chart, DATA_ATTRIBUTE.GRADIENT_TO, '#FFFFFF')),
-      opacityStart: Math.max(0, Math.min(1, Number(getDatasetValue(chart, DATA_ATTRIBUTE.GRADIENT_FROM_OPACITY, 1)))),
-      opacityEnd: Math.max(0, Math.min(1, Number(getDatasetValue(chart, DATA_ATTRIBUTE.GRADIENT_TO_OPACITY, 1))))
+      colorStart: String(getDatasetValue(chart, 'gradientFrom', '#FFFFFF')),
+      colorEnd: String(getDatasetValue(chart, 'gradientTo', '#FFFFFF')),
+      opacityStart: Math.max(0, Math.min(1, Number(getDatasetValue(chart, 'gradientFromOpacity', 1)))),
+      opacityEnd: Math.max(0, Math.min(1, Number(getDatasetValue(chart, 'gradientToOpacity', 1))))
     }));
     defs.appendChild(makeGradient({
       id: `neg_${id}`,
-      colorStart: String(getDatasetValue(chart, DATA_ATTRIBUTE.GRADIENT_TO, '#FFFFFF')),
-      colorEnd: String(getDatasetValue(chart, DATA_ATTRIBUTE.GRADIENT_FROM, '#FFFFFF')),
-      opacityStart: Math.max(0, Math.min(1, Number(getDatasetValue(chart, DATA_ATTRIBUTE.GRADIENT_TO_OPACITY, 1)))),
-      opacityEnd: Math.max(0, Math.min(1, Number(getDatasetValue(chart, DATA_ATTRIBUTE.GRADIENT_FROM_OPACITY, 1)))),
+      colorStart: String(getDatasetValue(chart, 'gradientTo', '#FFFFFF')),
+      colorEnd: String(getDatasetValue(chart, 'gradientFrom', '#FFFFFF')),
+      opacityStart: Math.max(0, Math.min(1, Number(getDatasetValue(chart, 'gradientToOpacity', 1)))),
+      opacityEnd: Math.max(0, Math.min(1, Number(getDatasetValue(chart, 'gradientFromOpacity', 1)))),
     }));
     return defs;
   }
@@ -388,7 +478,7 @@ export function createChart(chart: TINY_SPARK, firstTime: boolean) {
   const pathArea = makePathArea();
   const pathAreas: SVGPathElement[] = [];
 
-  const hasGradient = !!getDatasetValue(chart, DATA_ATTRIBUTE.GRADIENT_FROM, '') && !!getDatasetValue(chart, DATA_ATTRIBUTE.GRADIENT_TO, '');
+  const hasGradient = !!getDatasetValue(chart, 'gradientFrom', '') && !!getDatasetValue(chart, 'gradientTo', '');
   const gradientId = createUid();
 
   // PATH & AREA
@@ -427,10 +517,10 @@ export function createChart(chart: TINY_SPARK, firstTime: boolean) {
       svg.prepend(temperatureDefs);
       path.setAttribute('stroke', `url(#${temperatureId})`);
     } else {
-      path.setAttribute('stroke', String(getDatasetValue(chart, DATA_ATTRIBUTE.LINE_COLOR, color)));
+      path.setAttribute('stroke', String(getDatasetValue(chart, 'lineColor', color)));
     }
 
-    path.setAttribute('stroke-width', String(getDatasetValue(chart, DATA_ATTRIBUTE.LINE_THICKNESS, 2)));
+    path.setAttribute('stroke-width', String(getDatasetValue(chart, 'lineThickness', 2)));
     path.setAttribute('stroke-linecap', 'round');
     
     if (animation === 'true' && animate) {
@@ -455,7 +545,7 @@ export function createChart(chart: TINY_SPARK, firstTime: boolean) {
             if (hasGradient) {
               pth.setAttribute('fill', `url(#${gradientId})`);
             } else {
-              pth.setAttribute('fill', String(getDatasetValue(chart, DATA_ATTRIBUTE.AREA_COLOR, 'transparent')));
+              pth.setAttribute('fill', String(getDatasetValue(chart, 'areaColor', 'transparent')));
             }
             pathAreas.push(pth);
           });
@@ -471,7 +561,7 @@ export function createChart(chart: TINY_SPARK, firstTime: boolean) {
             if (hasGradient) {
               pth.setAttribute('fill', `url(#${gradientId})`);
             } else {
-              pth.setAttribute('fill', String(getDatasetValue(chart, DATA_ATTRIBUTE.AREA_COLOR, 'transparent')));
+              pth.setAttribute('fill', String(getDatasetValue(chart, 'areaColor', 'transparent')));
             }
             pathAreas.push(pth);
           });
@@ -482,7 +572,7 @@ export function createChart(chart: TINY_SPARK, firstTime: boolean) {
     if (hasGradient) {
       pathArea.setAttribute('fill', `url(#${gradientId})`);
     } else {
-      pathArea.setAttribute('fill', String(getDatasetValue(chart, DATA_ATTRIBUTE.AREA_COLOR, 'transparent')));
+      pathArea.setAttribute('fill', String(getDatasetValue(chart, 'areaColor', 'transparent')));
     }
   
     if (allPoints.length > 1) {
@@ -508,8 +598,8 @@ export function createChart(chart: TINY_SPARK, firstTime: boolean) {
     indicator.setAttribute('x2', String(area.left + (allPoints.length === 1 ? area.width / 2 : (i * slot))));
     indicator.setAttribute('y1', String(area.top));
     indicator.setAttribute('y2', String(area.bottom));
-    indicator.setAttribute('stroke', String(getDatasetValue(chart, DATA_ATTRIBUTE.INDICATOR_COLOR, '#1A1A1A')));
-    indicator.setAttribute('stroke-width', String(getDatasetValue(chart, DATA_ATTRIBUTE.INDICATOR_WIDTH, '1')));
+    indicator.setAttribute('stroke', String(getDatasetValue(chart, 'indicatorColor', '#1A1A1A')));
+    indicator.setAttribute('stroke-width', String(getDatasetValue(chart, 'indicatorWidth', '1')));
     indicator.setAttribute('stroke-linecap', 'round');
     indicator.style.pointerEvents = 'none';
     indicator.style.opacity = '0';
@@ -521,8 +611,8 @@ export function createChart(chart: TINY_SPARK, firstTime: boolean) {
   let bars: SVGRectElement[] = [];
 
   // PLOTS
-  const hasPlotRadius = Number(String(getDatasetValue(chart, DATA_ATTRIBUTE.PLOT_RADIUS, 0))) > 0;
-  const isInPlotViewRange = !String(getDatasetValue(chart, DATA_ATTRIBUTE.HIDE_PLOTS_ABOVE, '')) || allPoints.length <= (Number(String(getDatasetValue(chart, DATA_ATTRIBUTE.HIDE_PLOTS_ABOVE, 0))));
+  const hasPlotRadius = Number(String(getDatasetValue(chart, 'plotRadius', 0))) > 0;
+  const isInPlotViewRange = !String(getDatasetValue(chart, 'hidePlotsAbove', '')) || allPoints.length <= (Number(String(getDatasetValue(chart, 'hidePlotsAbove', 0))));
   const canShowPlots = hasPlotRadius && isInPlotViewRange;
 
   const plotGroup = document.createElementNS(XMLNS, 'g');
@@ -547,7 +637,7 @@ export function createChart(chart: TINY_SPARK, firstTime: boolean) {
             rect.setAttribute('fill', `url(#neg_${gradientId})`)
           }
         } else {
-          rect.setAttribute('fill', String(getDatasetValue(chart, DATA_ATTRIBUTE.PLOT_COLOR, String(getDatasetValue(chart, 'lineColor', color)))))
+          rect.setAttribute('fill', String(getDatasetValue(chart, 'plotColor', String(getDatasetValue(chart, 'lineColor', color)))))
         }
         rect.style.opacity = allPoints.length === 1 ? '1' : '0';
         rect.style.transition = `opacity ${i * ((ANIMATION_DURATION * 2) / allPoints.length)}ms ease-in`;
@@ -567,13 +657,13 @@ export function createChart(chart: TINY_SPARK, firstTime: boolean) {
           circle.setAttribute('id', `circle_${svgId}_${i}`);
           circle.setAttribute('cx', String(x || 0));
           circle.setAttribute('cy', String(y || 0));
-          circle.setAttribute('r', String(getDatasetValue(chart, DATA_ATTRIBUTE.PLOT_RADIUS, 3)));
-          circle.setAttribute('fill', String(getDatasetValue(chart, DATA_ATTRIBUTE.PLOT_COLOR, String(getDatasetValue(chart, 'lineColor', color)))));
+          circle.setAttribute('r', String(getDatasetValue(chart, 'plotRadius', 3)));
+          circle.setAttribute('fill', String(getDatasetValue(chart, 'plotColor', String(getDatasetValue(chart, 'lineColor', color)))));
           circle.setAttribute('stroke', backgroundColor);
           circle.style.opacity = allPoints.length === 1 ? '1' : '0';
           circle.style.transition = `opacity ${i * ((ANIMATION_DURATION * 2) / allPoints.length)}ms ease-in`;
           circle.style.pointerEvents = 'none';
-          plots.push(circle);
+          plots[i] = circle;
           if (canShowPlots) {
             plotGroup.appendChild(circle);
           }
@@ -584,36 +674,82 @@ export function createChart(chart: TINY_SPARK, firstTime: boolean) {
 
   // LAST VALUE
   let lastValueText: SVGTextElement | null = null
+  const lastPoint = allPoints.at(-1);
 
-  if (showLastValue && allPoints.length && allPoints.at(-1)) {
-    const fontSize = Number(getDatasetValue(chart, DATA_ATTRIBUTE.LAST_VALUE_FONT_SIZE, 12))
+  if (showLastValue && lastPoint?.v != null) {
+    const fontSize = Number(getDatasetValue(chart, 'lastValueFontSize', 12))
 
     lastValueText = document.createElementNS(XMLNS, 'text');
     lastValueText.classList.add('tiny-spark-last-value');
     lastValueText.setAttribute('id', lastValueId);
 
     if (isBar) {
-      lastValueText.setAttribute('x', String(allPoints.at(-1)!.x + Number(getDatasetValue(chart, DATA_ATTRIBUTE.LINE_THICKNESS, 2))));
-      lastValueText.setAttribute('y', allPoints.at(-1)?.isPositive ? String(allPoints.at(-1)!.y - fontSize / 3) : String(allPoints.at(-1)!.bar.y + allPoints.at(-1)!.bar.h + fontSize));
+      lastValueText.setAttribute('x', String(lastPoint.x + Number(getDatasetValue(chart, 'lineThickness', 2))));
+      lastValueText.setAttribute('y', lastPoint.isPositive ? String(lastPoint.y - fontSize / 3) : String(lastPoint.bar.y + lastPoint.bar.h + fontSize));
       lastValueText.setAttribute('text-anchor', 'middle');
     } else {
-      lastValueText.setAttribute('x', String(allPoints.at(-1)!.x + 6 + Number(getDatasetValue(chart, DATA_ATTRIBUTE.LINE_THICKNESS, 2))));
-      lastValueText.setAttribute('y', String(allPoints.at(-1)!.y + fontSize / 3));
+      lastValueText.setAttribute('x', String(lastPoint.x + 6 + Number(getDatasetValue(chart, 'lineThickness', 2))));
+      lastValueText.setAttribute('y', String(lastPoint.y + fontSize / 3));
       lastValueText.setAttribute('text-anchor', 'start');
     }
 
     lastValueText.setAttribute('font-size', String(fontSize) + 'px');
-    lastValueText.setAttribute('fill', String(getDatasetValue(chart, DATA_ATTRIBUTE.LAST_VALUE_COLOR, String(getDatasetValue(chart, DATA_ATTRIBUTE.INDICATOR_COLOR, '#1A1A1A')))));
-    lastValueText.innerHTML = localeNum(chart, Number(allPoints.at(-1)!.v));
+    lastValueText.setAttribute('fill', String(getDatasetValue(chart, 'lastValueColor', String(getDatasetValue(chart, 'indicatorColor', '#1A1A1A')))));
+    lastValueText.textContent = localeNum(chart, lastPoint.v);
     lastValueText.style.opacity = allPoints.length === 1 ? '1' : '0';
     svg.appendChild(lastValueText);
   }
 
   const trapGroup = document.createElementNS(XMLNS, 'g');
 
-  // TOOLTIP TRAPS
-  allPoints.forEach((point, i) => {
-    const thatPlot = plots[i];
+  const eventOptions = { signal: events.signal };
+  const plotRadius = Number(getDatasetValue(chart, 'plotRadius', 3));
+
+  function clearSelection() {
+    const selection = view.selection;
+    if (!selection) return;
+    const index = selection.index;
+    if (canShowPlots) {
+      plots[index]?.setAttribute('r', String(plotRadius));
+    } else {
+      plots[index]?.remove();
+    }
+    indicators[index].style.opacity = '0';
+    if (lastValueText) lastValueText.style.opacity = '1';
+    view.selection = undefined;
+  }
+
+  function dismissTooltip() {
+    chart.ownerDocument.removeEventListener('pointerdown', dismissOutside, true);
+    clearSelection();
+    const state = tooltipStates.get(chart);
+    if (state) {
+      hideTooltip(state);
+      state.hasSnapped = false;
+    }
+  }
+
+  function dismissOutside(event: PointerEvent) {
+    if (!event.composedPath().includes(chart)) dismissTooltip();
+  }
+
+  function selectPoint(index: number, source: NonNullable<typeof view.selection>['source']) {
+    clearSelection();
+    view.selection = { index, source };
+    showTooltip(svg, chart, allPoints[index], svgId);
+    const plot = plots[index];
+    if (canShowPlots) {
+      plot?.setAttribute('r', String(plotRadius * 1.5));
+    } else if (plot) {
+      svg.appendChild(plot);
+    }
+    indicators[index].style.opacity = '1';
+    if (lastValueText) {
+      lastValueText.style.opacity = index === allPoints.length - 1 ? '0' : '1';
+    }
+  }
+
+  allPoints.forEach((_, i) => {
     const trap = document.createElementNS(XMLNS, 'rect');
     trap.classList.add('tiny-spark-tooltip-trap');
     trap.setAttribute('x', `${allPoints.length === 1 ? 0 : area.left + i * slot - slot / 2}`);
@@ -621,57 +757,94 @@ export function createChart(chart: TINY_SPARK, firstTime: boolean) {
     trap.setAttribute('height', `${area.height}`);
     trap.setAttribute('width', `${slot}`);
     trap.setAttribute('fill', 'transparent');
-    trap.setAttribute('aria-describedby', `tooltip_${svgId}`)
-    trap.addEventListener('mouseenter', () => {
-      tooltip(svg, chart, point, svgId, true);
-      if (canShowPlots) {
-        const circle = document.getElementById(`circle_${svgId}_${i}`);
-        circle?.setAttribute('r', String(Number(getDatasetValue(chart, DATA_ATTRIBUTE.PLOT_RADIUS, 3)) * 1.5))
+    trap.setAttribute('aria-describedby', `tooltip_${svgId}`);
+    trap.addEventListener('pointerenter', event => {
+      if (event.pointerType !== 'touch' && view.selection?.source !== 'touch') {
+        selectPoint(i, 'mouse');
+      }
+    }, eventOptions);
+    trap.addEventListener('pointerleave', () => {
+      if (view.selection?.source === 'mouse' && view.selection.index === i) {
+        clearSelection();
+        const state = tooltipStates.get(chart);
+        if (state) hideTooltip(state);
+      }
+    }, eventOptions);
+    trap.addEventListener('pointerup', event => {
+      if (event.pointerType !== 'touch') return;
+      if (view.selection?.source === 'touch' && view.selection.index === i) {
+        dismissTooltip();
       } else {
-        svg.appendChild(thatPlot);
+        selectPoint(i, 'touch');
+        chart.focus({ preventScroll: true });
+        chart.ownerDocument.addEventListener('pointerdown', dismissOutside, {
+          ...eventOptions, capture: true
+        });
       }
-      indicators[i].style.opacity = '1';
-      if (showLastValue && lastValueText) {
-        if(i === allPoints.length - 1) {
-          lastValueText.style.opacity = '0';
-        } else {
-          lastValueText.style.opacity = '1';
-        }
-      }
-    });
-    trap.addEventListener('mouseout', () => {
-      tooltip(svg, chart, point, svgId, false);
-      if (canShowPlots) {
-        const circle = document.getElementById(`circle_${svgId}_${i}`);
-        circle?.setAttribute('r', String(Number(getDatasetValue(chart, DATA_ATTRIBUTE.PLOT_RADIUS, 3))))
-      } else {
-        thatPlot.remove();
-      }
-      indicators.forEach(indicator => indicator.style.opacity = '0');
-      if (showLastValue && lastValueText) {
-        lastValueText.style.opacity = '1';
-      }
-    });
-
+    }, eventOptions);
     trapGroup.appendChild(trap);
   });
 
   svg.appendChild(trapGroup);
 
+  if (allPoints.length) {
+    if (!chart.hasAttribute('tabindex')) {
+      chart.tabIndex = 0;
+      view.ownsTabIndex = true;
+    }
+    chart.addEventListener('focus', () => {
+      if (!view.selection) selectPoint(0, 'keyboard');
+    }, eventOptions);
+    chart.addEventListener('blur', dismissTooltip, eventOptions);
+    chart.addEventListener('pointerleave', () => {
+      if (!view.selection || view.selection.source === 'mouse') dismissTooltip();
+    }, eventOptions);
+    chart.addEventListener('keydown', event => {
+      const index = view.selection?.index;
+      const last = allPoints.length - 1;
+      let next: number;
+      switch (event.key) {
+        case 'ArrowLeft': next = Math.max(0, (index ?? last + 1) - 1); break;
+        case 'ArrowRight': next = Math.min(last, (index ?? -1) + 1); break;
+        case 'Home': next = 0; break;
+        case 'End': next = last; break;
+        case 'Escape':
+          if (!view.selection) return;
+          dismissTooltip();
+          event.preventDefault();
+          return;
+        default: return;
+      }
+      event.preventDefault();
+      selectPoint(next, 'keyboard');
+    }, eventOptions);
+  } else if (view.ownsTabIndex && chart.getAttribute('tabindex') === '0') {
+    chart.removeAttribute('tabindex');
+    view.ownsTabIndex = false;
+  }
+
   if (animation === 'true' && animate) {
     nextTick().then(() => {
+      if (events.signal.aborted) return;
       plots.forEach(circle => {
         circle.style.opacity = '1'
       })
       bars.forEach(bar => {
         bar.style.opacity = '1'
       })
-      animatePath(path, ANIMATION_DURATION, () => {
-        if (lastValueText) {
+      const revealLastValue = () => {
+        if (lastValueText && view.selection?.index !== allPoints.length - 1) {
           lastValueText.style.opacity = '1';
         }
-      });
-      animateAreaProgressively(svg as unknown as TINY_SPARK, pathArea);
+      };
+      if (path.parentNode === svg && path.getAttribute('d')?.trim() !== 'M') {
+        animatePath(path, ANIMATION_DURATION, revealLastValue);
+      } else {
+        revealLastValue();
+      }
+      if (pathArea.parentNode === svg) {
+        animateAreaProgressively(svg as unknown as TINY_SPARK, pathArea);
+      }
     })
   } else {
     plots.forEach(circle => {
@@ -686,14 +859,7 @@ export function createChart(chart: TINY_SPARK, firstTime: boolean) {
   }
 
   chart.appendChild(svg);
-
-  chart.addEventListener('mouseleave', () => {
-    const st = tooltipStates[svgId];
-    if (st) {
-      cancelAnimationFrame(st.frameId!);
-      st.frameId = null;
-      st.tool.style.opacity = '0';
-      st.hasSnapped = false;
-    }
-  });
+  if (chart.matches(':focus') && previous?.selection?.source === 'keyboard' && allPoints.length) {
+    selectPoint(Math.min(previous.selection.index, allPoints.length - 1), 'keyboard');
+  }
 }

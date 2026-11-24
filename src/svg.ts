@@ -1,21 +1,20 @@
-import { TINY_SPARK, POINT, XMLNS, ANIMATION_DURATION, DATA_ATTRIBUTE } from "../types";
-import { getDatasetValue, parseDataset } from "./lib";
-import pack from "../package.json";
+import { TINY_SPARK, POINT, XMLNS, ANIMATION_DURATION } from "../types";
+import { getDatasetValue, localeNum } from "./lib";
+import { version } from "../package.json";
 
-export function SVG(chart: TINY_SPARK) {
-    const { width, height } = chart.parentElement!.getBoundingClientRect();
+export function SVG(chart: TINY_SPARK, lastValue: number | undefined) {
     const fallback = { width: 300, height: 100 };
+    const { width, height } = chart.parentElement?.getBoundingClientRect() ?? fallback;
     
-    const showLastValue = String(getDatasetValue(chart, DATA_ATTRIBUTE.SHOW_LAST_VALUE, 'false')) === 'true';
-    const dataset = parseDataset(chart);
-    const lastValue = dataset && dataset.length ? dataset.at(-1) : null;
+    const showLastValue = String(getDatasetValue(chart, 'showLastValue', 'false')) === 'true';
     let offsetX = 0;
 
     const isBar = chart.dataset.type && chart.dataset.type === 'bar';
 
-    if (!isBar && showLastValue && ![null, undefined].includes(lastValue)) {
-        const rounding = Number(String(getDatasetValue(chart, DATA_ATTRIBUTE.NUMBER_ROUNDING, 0)));
-        offsetX = 6 + lastValue.toFixed(rounding).length * (Number(getDatasetValue(chart, DATA_ATTRIBUTE.LAST_VALUE_FONT_SIZE, 12)) / 2);
+    if (!isBar && showLastValue && lastValue != null) {
+        const rounding = Number(String(getDatasetValue(chart, 'numberRounding', 0)));
+        const label = chart.dataset.numberStyle ? localeNum(chart, lastValue) : lastValue.toFixed(rounding);
+        offsetX = 6 + label.length * (Number(getDatasetValue(chart, 'lastValueFontSize', 12)) / 2);
     }
 
     const usedWidth = (width || fallback.width) + offsetX;
@@ -30,7 +29,7 @@ export function SVG(chart: TINY_SPARK) {
 
     const desc = document.createElementNS(XMLNS, 'desc');
     desc.setAttribute('aria-hidden', 'true');
-    desc.innerHTML = `Composed with tiny-spark v${pack.version}`;
+    desc.innerHTML = `Composed with tiny-spark v${version}`;
     svg.appendChild(desc);
 
     return {
@@ -58,47 +57,45 @@ export function createStraightPath(points: POINT[]) {
     return arr.join(' ').trim();
 }
 
-export function createSmoothPath(points: POINT[]) {
-    if (points.length < 2) return '0,0';
+function smoothCurve(points: POINT[], command: string, coordinate: (value: number) => number) {
+    const last = points.length - 1;
+    const slopes = [];
+    const tangents = [];
 
-    const n = points.length - 1;
-    const path = [`${checkNaN(points[0].x)},${checkNaN(points[0].y)}`];
-    const dx = [], dy = [], slopes = [], tangents = [];
-
-    for (let i = 0; i < n; i += 1) {
-        dx[i] = points[i + 1].x - points[i].x;
-        dy[i] = points[i + 1].y - points[i].y;
-        slopes[i] = dy[i] / dx[i];
+    for (let i = 0; i < last; i += 1) {
+        slopes[i] = (points[i + 1].y - points[i].y) / (points[i + 1].x - points[i].x);
     }
 
     tangents[0] = slopes[0];
-    tangents[n] = slopes[n - 1];
+    tangents[last] = slopes[last - 1];
 
-    for (let i = 1; i < n; i += 1) {
-        if (slopes[i - 1] * slopes[i] <= 0) {
-            tangents[i] = 0;
-        } else {
-            const harmonicMean = (2 * slopes[i - 1] * slopes[i]) / (slopes[i - 1] + slopes[i]);
-            tangents[i] = harmonicMean;
-        }
+    for (let i = 1; i < last; i += 1) {
+        const previous = slopes[i - 1];
+        const next = slopes[i];
+        tangents[i] = previous * next <= 0 ? 0 : (2 * previous * next) / (previous + next);
     }
 
-    for (let i = 0; i < n; i += 1) {
-        const x1 = points[i].x;
-        const y1 = points[i].y;
-        const x2 = points[i + 1].x;
-        const y2 = points[i + 1].y;
-        const m1 = tangents[i];
-        const m2 = tangents[i + 1];
-        const controlX1 = x1 + (x2 - x1) / 3;
-        const controlY1 = y1 + m1 * (x2 - x1) / 3;
-        const controlX2 = x2 - (x2 - x1) / 3;
-        const controlY2 = y2 - m2 * (x2 - x1) / 3;
+    let path = '';
+    for (let i = 0; i < last; i += 1) {
+        const { x: x1, y: y1 } = points[i];
+        const { x: x2, y: y2 } = points[i + 1];
+        const dx = x2 - x1;
+        const controlX1 = x1 + dx / 3;
+        const controlY1 = y1 + tangents[i] * dx / 3;
+        const controlX2 = x2 - dx / 3;
+        const controlY2 = y2 - tangents[i + 1] * dx / 3;
 
-        path.push(`C ${checkNaN(controlX1)},${checkNaN(controlY1)} ${checkNaN(controlX2)},${checkNaN(controlY2)} ${checkNaN(x2)},${checkNaN(y2)}`);
+        path += ` ${command}${coordinate(controlX1)},${coordinate(controlY1)} ${coordinate(controlX2)},${coordinate(controlY2)} ${coordinate(x2)},${coordinate(y2)}`;
     }
 
-    return path.join(' ');
+    return path;
+}
+
+export function createSmoothPath(points: POINT[]) {
+    if (points.length < 2) return '0,0';
+
+    const { x, y } = points[0];
+    return `${checkNaN(x)},${checkNaN(y)}${smoothCurve(points, 'C ', checkNaN)}`;
 }
 
 export function getValidSegments(points: POINT[]) {
@@ -119,45 +116,10 @@ export function getValidSegments(points: POINT[]) {
 export function createSmoothPathWithCuts(points: POINT[]) {
     const segments = getValidSegments(points);
 
-    if (!segments.length) return '';
-
-    let fullPath = '';
-    for (const [idx, seg] of segments.entries()) {
-        if (seg.length < 2) continue;
-        const n = seg.length - 1;
-        const dx = [], dy = [], slopes = [], tangents = [];
-        for (let i = 0; i < n; i += 1) {
-            dx[i] = seg[i + 1].x - seg[i].x;
-            dy[i] = seg[i + 1].y - seg[i].y;
-            slopes[i] = dy[i] / dx[i];
-        }
-        tangents[0] = slopes[0];
-        tangents[n] = slopes[n - 1];
-        for (let i = 1; i < n; i += 1) {
-            if (slopes[i - 1] * slopes[i] <= 0) {
-                tangents[i] = 0;
-            } else {
-                const harmonicMean = (2 * slopes[i - 1] * slopes[i]) / (slopes[i - 1] + slopes[i]);
-                tangents[i] = harmonicMean;
-            }
-        }
-
-        fullPath += `${idx === 0 ? '' : 'M'}${checkNaN(seg[0].x)},${checkNaN(seg[0].y)} `;
-        for (let i = 0; i < n; i += 1) {
-            const x1 = seg[i].x;
-            const y1 = seg[i].y;
-            const x2 = seg[i + 1].x;
-            const y2 = seg[i + 1].y;
-            const m1 = tangents[i];
-            const m2 = tangents[i + 1];
-            const controlX1 = x1 + (x2 - x1) / 3;
-            const controlY1 = y1 + m1 * (x2 - x1) / 3;
-            const controlX2 = x2 - (x2 - x1) / 3;
-            const controlY2 = y2 - m2 * (x2 - x1) / 3;
-            fullPath += `C${checkNaN(controlX1)},${checkNaN(controlY1)} ${checkNaN(controlX2)},${checkNaN(controlY2)} ${checkNaN(x2)},${checkNaN(y2)} `;
-        }
-    }
-    return fullPath.trim();
+    return segments.map(seg => {
+        const { x, y } = seg[0];
+        return `${checkNaN(x)},${checkNaN(y)}${smoothCurve(seg, 'C', checkNaN)}`;
+    }).join(' M');
 }
 
 export function createStraightPathWithCuts(points: POINT[]) {
@@ -251,40 +213,8 @@ export function createSmoothAreaSegments(points: POINT[], zero: number, cut = fa
     const segments = cut ? getSegments(points) : [points];
     return segments.map(seg => {
         if (seg.length < 2) return '';
-        const n = seg.length - 1;
-        const dx = [], dy = [], slopes = [], tangents = [];
-        for (let i = 0; i < n; i += 1) {
-            dx[i] = seg[i + 1].x - seg[i].x;
-            dy[i] = seg[i + 1].y - seg[i].y;
-            slopes[i] = dy[i] / dx[i];
-        }
-        tangents[0] = slopes[0];
-        tangents[n] = slopes[n - 1];
-        for (let i = 1; i < n; i += 1) {
-            if (slopes[i - 1] * slopes[i] <= 0) {
-                tangents[i] = 0;
-            } else {
-                const harmonicMean = (2 * slopes[i - 1] * slopes[i]) / (slopes[i - 1] + slopes[i]);
-                tangents[i] = harmonicMean;
-            }
-        }
-        let d = `M${seg[0].x},${zero}`;
-        d += ` L${seg[0].x},${seg[0].y}`;
-        for (let i = 0; i < n; i += 1) {
-            const x1 = seg[i].x;
-            const y1 = seg[i].y;
-            const x2 = seg[i + 1].x;
-            const y2 = seg[i + 1].y;
-            const m1 = tangents[i];
-            const m2 = tangents[i + 1];
-            const controlX1 = x1 + (x2 - x1) / 3;
-            const controlY1 = y1 + m1 * (x2 - x1) / 3;
-            const controlX2 = x2 - (x2 - x1) / 3;
-            const controlY2 = y2 - m2 * (x2 - x1) / 3;
-            d += ` C${controlX1},${controlY1} ${controlX2},${controlY2} ${x2},${y2}`;
-        }
-        d += ` L${seg[n].x},${zero} ${close ? 'Z' : ''}`;
-        return d;
+        const { x, y } = seg[0];
+        return `M${x},${zero} L${x},${y}${smoothCurve(seg, 'C', value => value)} L${seg.at(-1)!.x},${zero} ${close ? 'Z' : ''}`;
     }).filter(Boolean);
 }
 

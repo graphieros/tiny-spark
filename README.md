@@ -101,6 +101,39 @@ Render a bar chart:
 </div>
 ```
 
+### Keyboard and touch
+
+Each chart with data adds one tab stop unless you provide a `tabindex`. Use the left and right arrow keys to inspect points, Home and End to jump to the first and last points, and Escape to hide the tooltip. On touch screens, tap a point to show its tooltip. Tap it again or tap outside the chart to dismiss it. Use `role="group"` and a descriptive `aria-label` to distinguish each chart from nearby charts.
+
+### Comparing charts
+
+Set the same `data-y-min` and `data-y-max` on charts you want to compare. For example, `data-y-min="0" data-y-max="200"` uses a fixed vertical scale from 0 to 200 for both line and bar charts. You can supply just one bound. The other then includes zero and the data, as appropriate. Values outside the range are drawn at the nearest bound and keep their original values in tooltips. An invalid range falls back to automatic scaling.
+
+### Formatting values
+
+The tooltip and last-value label both use `data-number-locale` and `data-number-rounding`. Add a style to display currency, percentages, or units.
+
+| Display | Attributes | Example |
+| --- | --- | --- |
+| Currency | `data-number-style="currency" data-number-currency="USD" data-number-rounding="2"` | `12.5` becomes `$12.50` in `en-US` |
+| Percentage | `data-number-style="percent"` | `0.25` becomes `25%` |
+| Unit | `data-number-style="unit" data-number-unit="kilometer"` | `12` becomes `12 km` in `en-US` |
+
+### Rendering within a container
+
+Pass a chart or its container to initialize just that part of the page. Call `destroy` before unmounting a component to disconnect its observers, remove generated SVG and tooltip elements, and release interaction handlers. Calling either function with no argument targets the current document.
+
+```js
+import { destroy, render } from "tiny-spark";
+
+const dashboard = document.querySelector("#dashboard");
+if (dashboard) {
+  render(dashboard);
+  // In the component's unmount hook
+  // destroy(dashboard);
+}
+```
+
 ## Styling
 
 tiny-spark is headless.

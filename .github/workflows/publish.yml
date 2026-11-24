@@ -23,11 +23,13 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           package-manager-cache: false
 
-      - run: npm ci
+      - uses: pnpm/action-setup@v6
 
-      - run: npm run build
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm run build
 
       - name: Publish
         run: |
           TAG=$(node -p "const version = require('./package.json').version; const prerelease = version.match(/-(.+?)(\.|$)/); prerelease ? prerelease[1] : 'latest'")
-          npm publish --tag "$TAG"
+          pnpm publish --no-git-checks --tag "$TAG"

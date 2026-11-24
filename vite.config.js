@@ -8,10 +8,9 @@ export default defineConfig({
       fileName: (format) => `tiny-spark.${format}.js`,
       formats: ["es"],
     },
-    rollupOptions: {
-      external: [],
+    rolldownOptions: {
       output: {
-        globals: {},
+        minify: true,
       },
     },
   },
