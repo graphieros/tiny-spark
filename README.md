@@ -105,6 +105,25 @@ Render a bar chart:
 
 Each chart with data adds one tab stop unless you provide a `tabindex`. Use the left and right arrow keys to inspect points, Home and End to jump to the first and last points, and Escape to hide the tooltip. On touch screens, tap a point to show its tooltip. Tap it again or tap outside the chart to dismiss it. Use `role="group"` and a descriptive `aria-label` to distinguish each chart from nearby charts.
 
+### Synchronizing charts
+
+Set `data-sync-index` to a zero-based point index to show its indicator and tooltip. Remove the attribute or set it to `"null"` or `"undefined"` to clear the synchronized selection. Out-of-range and non-integer values also clear it. Local interaction takes priority while a chart is being inspected.
+
+`onSyncIndex(chart, callback)` reports local hover, keyboard, and touch selections. It reports `null` on dismissal and returns an unsubscribe function. Attribute updates do not emit callbacks, so you can wire charts in both directions.
+
+`syncTo(chart)` creates a callback that updates the target chart's `data-sync-index`. Pass it to `onSyncIndex` or call it directly with an index. Pass `null` or `undefined` to clear the selection. The callback does nothing if the target is missing or isn't a chart.
+
+```js
+import { onSyncIndex, render, syncTo } from "tiny-spark";
+
+render();
+const first = document.querySelector("#first-chart");
+const second = document.querySelector("#second-chart");
+
+const stopFirst = onSyncIndex(first, syncTo(second));
+const stopSecond = onSyncIndex(second, syncTo(first));
+```
+
 ### Comparing charts
 
 Set the same `data-y-min` and `data-y-max` on charts you want to compare. For example, `data-y-min="0" data-y-max="200"` uses a fixed vertical scale from 0 to 200 for both line and bar charts. You can supply just one bound. The other then includes zero and the data, as appropriate. Values outside the range are drawn at the nearest bound and keep their original values in tooltips. An invalid range falls back to automatic scaling.
@@ -113,11 +132,11 @@ Set the same `data-y-min` and `data-y-max` on charts you want to compare. For ex
 
 The tooltip and last-value label both use `data-number-locale` and `data-number-rounding`. Add a style to display currency, percentages, or units.
 
-| Display | Attributes | Example |
-| --- | --- | --- |
-| Currency | `data-number-style="currency" data-number-currency="USD" data-number-rounding="2"` | `12.5` becomes `$12.50` in `en-US` |
-| Percentage | `data-number-style="percent"` | `0.25` becomes `25%` |
-| Unit | `data-number-style="unit" data-number-unit="kilometer"` | `12` becomes `12 km` in `en-US` |
+| Display    | Attributes                                                                         | Example                            |
+| ---------- | ---------------------------------------------------------------------------------- | ---------------------------------- |
+| Currency   | `data-number-style="currency" data-number-currency="USD" data-number-rounding="2"` | `12.5` becomes `$12.50` in `en-US` |
+| Percentage | `data-number-style="percent"`                                                      | `0.25` becomes `25%`               |
+| Unit       | `data-number-style="unit" data-number-unit="kilometer"`                            | `12` becomes `12 km` in `en-US`    |
 
 ### Rendering within a container
 

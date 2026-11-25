@@ -1,5 +1,5 @@
 import "./style.css";
-import { render } from "./index";
+import { onSyncIndex, render, syncTo } from "./index";
 
 let plotRadius = 3;
 
@@ -24,7 +24,8 @@ function makeDs(n: number) {
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 app.innerHTML = `
-<div style="width:100%">
+<p>Hover either chart to highlight the same point in both charts. You can also tab to a chart and use the arrow keys.</p>
+<div style="width:100%;height:140px">
 <div
   class="tiny-spark"
   role="group"
@@ -62,11 +63,12 @@ app.innerHTML = `
   data-temperature-colors="['#00FF00', '#FF0000']"
 ></div>
 </div>
-<div style="width:100%">
+<div style="width:100%;height:140px">
 <div
   class="tiny-spark"
   role="group"
   aria-label="Temperature change in degrees Celsius"
+  data-id="temperature"
   data-gradient-from="#FF0000"
   data-gradient-to="#FFAA00"
   data-gradient-from-opacity="1"
@@ -98,4 +100,10 @@ app.innerHTML = `
 ></div>
 </div>
 `;
+
+const revenue = app.querySelector<HTMLElement>('[data-id="test"]')!;
+const temperature = app.querySelector<HTMLElement>('[data-id="temperature"]')!;
+
+onSyncIndex(revenue, syncTo(temperature));
+onSyncIndex(temperature, syncTo(revenue));
 render(app);

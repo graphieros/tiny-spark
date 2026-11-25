@@ -6,6 +6,8 @@ import {
   hasDataset,
   createUid,
   nextTick,
+  syncChartIndex,
+  syncIndexEvent,
 } from "./lib";
 
 const watchedAttributes = [
@@ -33,6 +35,7 @@ const watchedAttributes = [
   "data-last-value-color",
   "data-type",
   "data-tooltip-smoothing",
+  "data-sync-index",
   "data-cut-null",
   "data-gradient-from",
   "data-gradient-to",
@@ -86,7 +89,22 @@ export function render(root?: ParentNode) {
     if (!existing) {
       existing = {
         resize: new ResizeObserver(() => RENDER(chart)),
-        mutation: new MutationObserver(() => RENDER(chart)),
+        mutation: new MutationObserver((records) => {
+          if (
+            records.some(
+              ({ attributeName }) => attributeName !== "data-sync-index",
+            )
+          ) {
+            RENDER(chart);
+          }
+          if (
+            records.some(
+              ({ attributeName }) => attributeName === "data-sync-index",
+            )
+          ) {
+            syncChartIndex(chart, true);
+          }
+        }),
         parent: null,
       };
       chartObservers.set(chart, existing);
@@ -103,6 +121,7 @@ export function render(root?: ParentNode) {
     nextTick().then(() => {
       if (chartObservers.get(chart) !== observers) return;
       observers.mutation.observe(chart, { attributeFilter: watchedAttributes });
+      syncChartIndex(chart);
       const parent = chart.parentElement;
       if (observers.parent !== parent) {
         observers.resize.disconnect();
@@ -114,6 +133,8 @@ export function render(root?: ParentNode) {
 }
 
 /**
+ * Tiny Spark - destroy
+ * ---
  * Stops observing matching charts and removes their generated SVG and tooltip.
  * Call `render` to initialize them again.
  *
@@ -148,6 +169,53 @@ function CHECK(chart: TINY_SPARK) {
         `Provide an array of numbers, for example:\n\n data-set="[1, 2, 3]"`,
     );
   }
+}
+
+/**
+ * Tiny Spark - onSyncIndex
+ * ---
+ * Subscribes to a chart's local selection changes. The callback receives a
+ * zero-based point index or `null` when the selection is cleared.
+ * Changes from `data-sync-index` do not call the callback.
+ *
+ * @returns A function that removes the subscription.
+ */
+export function onSyncIndex(
+  chart: HTMLElement,
+  callback: (index: number | null) => void,
+): () => void {
+  const listener = (event: Event) =>
+    callback((event as CustomEvent<number | null>).detail);
+  chart.addEventListener(syncIndexEvent, listener);
+  return () => chart.removeEventListener(syncIndexEvent, listener);
+}
+
+/**
+ * Tiny Spark - syncTo
+ * ---
+ * Creates a callback that sets the chart's synchronized point by zero-based index.
+ * Pass `null` or `undefined` to clear the synchronized selection.
+ * The callback does nothing when the target is missing or is not a chart.
+ *
+ * @example
+ * const unsubscribe = onSyncIndex(source, syncTo(target));
+ */
+export function syncTo(chart?: Element | null): (index?: number | null) => void {
+  return (index) => {
+    const target = chart as HTMLElement | null | undefined;
+    if (
+      target?.namespaceURI !== "http://www.w3.org/1999/xhtml" ||
+      typeof target.matches !== "function" ||
+      !target.matches(".tiny-spark") ||
+      !target.dataset
+    ) return;
+
+    if (index == null) {
+      delete target.dataset.syncIndex;
+    } else {
+      target.dataset.syncIndex = String(index);
+    }
+  };
 }
 
 /**
